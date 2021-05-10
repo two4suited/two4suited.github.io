@@ -1,0 +1,13 @@
+---
+layout: post
+title:  "Hello"
+date:   2021-05-09 12:32:57 -0700
+categories: First
+---
+<p>Hello,</p>
+
+<p>I started this blog to keep track of technical challenges that are head scratchers to me and will document how I solved them.</p>
+
+<p>It will also be about DevOps and the journey I am going through helping a large organization adopt those practices.</p>
+
+<p>Brian</p>

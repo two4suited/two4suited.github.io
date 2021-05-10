@@ -1,0 +1,9 @@
+- name: Email
+  link: mailto:brian.sheridan@gmail.com
+  icon: fas fa-envelope
+- name: Twitter
+  link: https://twitter.com/brianpsheridan
+  icon: fab fa-twitter
+- name: GitHub
+  link: https://github.com/two4suited
+  icon: fab fa-github

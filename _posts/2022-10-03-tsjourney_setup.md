@@ -2,7 +2,7 @@
 title: "Typescript Journey - Setup"
 date: 2022-10-02T08:00:00-07:00
 draft: false
-categories: ["learning,typescript"]
+categories: ["learning","typescript"]
 description: "Typescript Journey - Setup"
 layout: post
 ---

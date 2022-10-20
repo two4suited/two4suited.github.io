@@ -2,7 +2,7 @@
 title: "Typescript Journey - Intro"
 date: 2022-10-02T07:29:27-07:00
 draft: false
-tags: ["learning,typescript"]
+categories: ["learning,typescript"]
 description: "Typescript Journey - Intro"
 layout: post
 ---

@@ -48,7 +48,7 @@ description: >- # this means to ignore newlines until "baseurl:"
   I am very driven and enjoy solving business problems with technology. I have over 20 years of experience in all areas of technology positions. I've worked as a Helpdesk Support, Server Administrator, Network Administrator, Programmer, Architect, Engineering Manager, and Director of Technology.
 about_img: "/static/headshot.jpg"    
 favicon_img: "/static/avataaars.png"
-navbar_img: "/static/avataaars.png"
+navbar_img: "/static/logo.png"
   
 baseurl: "" # the subpath of your site, e.g. /blog
 url: "" # the base hostname & protocol for your site, e.g. http://example.com

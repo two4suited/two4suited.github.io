@@ -6,7 +6,7 @@ categories: ["learning","typescript"]
 description: "Typescript Journey - Hello World"
 layout: post
 ---
-# Typescript Journey - Hello World
+
 
 [**Here is the repo**](https://github.com/two4suited/TypescriptJourney/tree/helloworld)
 

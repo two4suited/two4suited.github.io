@@ -3,9 +3,11 @@ title: "Typescript Journey - Hello World"
 date: 2022-10-03T06:00:00-07:00
 draft: false
 categories: ["learning","typescript"]
-description: "Typescript Journey - Hello World"
+description: "Walkthrough creating our first app in typescript"
 layout: post
 ---
+
+
 [**Here is the repo**](https://github.com/two4suited/TypescriptJourney/tree/helloworld)
 
 ## Run your app with Node

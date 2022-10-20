@@ -6,8 +6,6 @@ categories: ["learning","typescript"]
 description: "Typescript Journey - Setup"
 layout: post
 ---
-
-
 I am going to using [Dev Containers](https://code.visualstudio.com/docs/remote/containers) to do my development.  This will allow me to use a docker container or Github Codespaces to do my Typescript development.
 
 [**Here is the repo**](https://github.com/two4suited/TypescriptJourney/tree/setup)

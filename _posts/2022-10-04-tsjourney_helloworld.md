@@ -6,8 +6,6 @@ categories: ["learning","typescript"]
 description: "Typescript Journey - Hello World"
 layout: post
 ---
-
-
 [**Here is the repo**](https://github.com/two4suited/TypescriptJourney/tree/helloworld)
 
 ## Run your app with Node
@@ -43,7 +41,7 @@ layout: post
 
 ## Run your app with ts-node
 
-### Another alternative to run your app is to use ts-node, this does not require creating a js file
+Another alternative to run your app is to use ts-node, this does not require creating a js file
 
 1. Install ts-node
 ````

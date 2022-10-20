@@ -6,7 +6,7 @@ categories: ["learning","typescript"]
 description: "Typescript Journey - Intro"
 layout: post
 ---
-# Why?
+## Why?
 
 I have been a .net developer for over 20 years and mostly worked on Microsoft based systems in that time.  As I moved to the Cloud, especially AWS, I started to work more on linux systems and then not even caring what that underlying system was.  Even as .net moved from Framework to Core it got easier to run on multiple systems, but at the end of the day it is a compilied language.  
 
@@ -16,11 +16,11 @@ So I landed on Typescript.
 
 I also noticed that it is now the most popular language [TypeScript is the new top Programming Language](https://www.hntrends.com/2022/april.html)
 
-# What is my path?
+## What is my path?
 
 Use Visual Studio Code to write, debug, test and run Typescript applications.
 
-# What I will document
+## What I will document
 - Components that need to be installed to run Typescript
 - VSCode extensions that help with Typescript dev
 - How to debug a typescript applications

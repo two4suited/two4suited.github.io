@@ -56,8 +56,8 @@ paginate: 5
 
 
 # Build settings
-theme: minima
-#remote_theme: slee981/jekyll-theme-cadre
+#theme: minima
+remote_theme: rohanchandra/type-theme
 plugins:
   - jekyll-feed
   - jekyll-paginate

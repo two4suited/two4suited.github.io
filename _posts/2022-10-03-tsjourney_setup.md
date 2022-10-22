@@ -22,7 +22,7 @@ _View -> Command Palette -> Remote Containers: Add Development Container Configu
 
 2. Choose Alpine and Latest Version
 3. Open Folder in Container
-![](/static/images/posts/Screenshot 2022-10-02 at 11.36.59 AM.png)
+<br>![](/static/images/posts/devcontainervscode.png)</br>
 4. Change Dockerfile and devcontainer.json to support Typescript and Node
 
 **Dockerfile**
@@ -33,7 +33,7 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && apt-get -y install git
 ```
 **devcontainer.json**
-```
+```json
 {
 	"build": {"dockerfile": "Dockerfile"},
 	"customizations": {

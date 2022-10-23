@@ -1,5 +1,5 @@
 ---
-title: "Typescript Journey - Setup"
+title: "2. Typescript Journey - Setup"
 date: 2022-10-02T08:00:00-07:00
 draft: false
 categories: ["learning","typescript","Typescript Journey"]

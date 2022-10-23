@@ -10,7 +10,7 @@ layout: post
 
 Ability to test Typescript app using Jest using the UI
 
-[Source Code](https://github.com/two4suited/TypescriptJourney/tree/vsode)
+[Source Code](https://github.com/two4suited/TypescriptJourney/tree/vscode)
 
 ## Setup
 

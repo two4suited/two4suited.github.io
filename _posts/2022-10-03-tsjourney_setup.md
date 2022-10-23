@@ -3,6 +3,7 @@ title: "Typescript Journey - Setup"
 date: 2022-10-02T08:00:00-07:00
 draft: false
 categories: ["learning","typescript","Typescript Journey"]
+description: "Get Visual Studio setup with devcontainers"
 layout: post
 ---
 I am going to using [Dev Containers](https://code.visualstudio.com/docs/remote/containers) to do my development.  This will allow me to use a docker container or Github Codespaces to do my Typescript development.

@@ -3,6 +3,7 @@ title: "Typescript Journey - Intro"
 date: 2022-10-02T07:29:27-07:00
 draft: false
 categories: ["learning","typescript","Typescript Journey"]
+description: "Intro about why I want to take this Journey"
 layout: post
 ---
 ## Why?

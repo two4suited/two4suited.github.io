@@ -32,4 +32,4 @@ Use Visual Studio Code to write, debug, test and run Typescript applications.
 
 ---
 
-[Next - Setup](https://brianpsheridan.com/learning/typescript/2022/10/02/tsjourney_setup.html)
+[Next - Setup](https://brianpsheridan.com/learning/typescript/2022/10/02/setup.html)

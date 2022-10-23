@@ -2,7 +2,7 @@
 title: "Typescript Journey - Intro"
 date: 2022-10-02T07:29:27-07:00
 draft: false
-categories: ["learning","typescript"]
+categories: ["learning","typescript","Typescript Journey"]
 layout: post
 ---
 ## Why?
@@ -28,3 +28,7 @@ Use Visual Studio Code to write, debug, test and run Typescript applications.
 - Using Typescript to write IaC code 
 - Create AWS Lambda API with IaC and Typescript code in one
 - Develop Application fully in Typescript and run it on AWS Amplify or Azure Static Web Apps
+
+---
+
+[Next - Setup](https://brianpsheridan.com/learning/typescript/2022/10/02/tsjourney_setup.html)

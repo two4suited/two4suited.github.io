@@ -2,7 +2,7 @@
 title: "Typescript Journey - Hello World"
 date: 2022-10-03T06:00:00-07:00
 draft: false
-categories: ["learning","typescript"]
+categories: ["learning","typescript","Typescript Journey"]
 description: "Walkthrough creating our first app in typescript"
 layout: post
 ---
@@ -58,4 +58,6 @@ Another alternative to run your app is to use ts-node, this does not require cre
     ts-node index.ts
 ````
 
-_Next we will configure debugging in Visual Studio Code._
+---
+
+[Next - Testing](https://brianpsheridan.com/learning/typescript/2022/10/22/tsjourney_testing.html)

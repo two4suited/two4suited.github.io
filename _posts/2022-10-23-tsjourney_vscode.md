@@ -2,7 +2,7 @@
 title: "Typescript Journey - Visual Studio Code Testing"
 date: 2022-10-23T10:00:00-07:00
 draft: false
-categories: ["learning","typescript"]
+categories: ["learning","typescript","Typescript Journey"]
 description: "Setup Visual Studio Code to use with Jest"
 layout: post
 ---

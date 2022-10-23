@@ -2,7 +2,7 @@
 title: "Typescript Journey - Testing"
 date: 2022-10-22T06:00:00-07:00
 draft: false
-categories: ["learning","typescript"]
+categories: ["learning","typescript","Typescript Journey"]
 description: "How do we test our typescript app?"
 layout: post
 ---

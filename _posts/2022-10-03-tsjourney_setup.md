@@ -2,7 +2,7 @@
 title: "Typescript Journey - Setup"
 date: 2022-10-02T08:00:00-07:00
 draft: false
-categories: ["learning","typescript"]
+categories: ["learning","typescript","Typescript Journey"]
 layout: post
 ---
 I am going to using [Dev Containers](https://code.visualstudio.com/docs/remote/containers) to do my development.  This will allow me to use a docker container or Github Codespaces to do my Typescript development.
@@ -47,5 +47,7 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
 
 ```
 
-_Next we will run your first Typescript App._
+---
+
+[Next - Hello World](https://brianpsheridan.com/learning/typescript/2022/10/03/tsjourney_helloworld.html)
 

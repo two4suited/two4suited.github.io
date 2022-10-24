@@ -1,5 +1,5 @@
 ---
-title: "Typescript Journey - Debugging"
+title: "6. Typescript Journey - Debugging"
 date: 2022-10-23T21:00:00-07:00
 draft: false
 categories: ["learning","typescript","Typescript Journey"]

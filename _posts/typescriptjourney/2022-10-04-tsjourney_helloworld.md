@@ -60,4 +60,4 @@ Another alternative to run your app is to use ts-node, this does not require cre
 
 ---
 
-[Next - Testing](https://brianpsheridan.com/learning/typescript/2022/10/22/tsjourney_testing.html)
+[Next - 4. Typescript Journey - Testing](https://brianpsheridan.com/learning/typescript/2022/10/22/tsjourney_testing.html)

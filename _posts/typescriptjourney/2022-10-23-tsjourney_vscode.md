@@ -22,4 +22,4 @@ This will add an icon for testing to your Activity Bar
 
 This will allow you to run test from the UI and also debug tests
 
-
+[Next - 6. Typescript Journey - Debugging](https://brianpsheridan.com/learning/typescript/typescript%20journey/2022/10/24/tsjourney_debugging.html)

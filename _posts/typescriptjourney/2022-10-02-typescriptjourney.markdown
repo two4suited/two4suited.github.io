@@ -30,6 +30,7 @@ Use Visual Studio Code to write, debug, test and run Typescript applications.
 - Create AWS Lambda API with IaC and Typescript code in one
 - Develop Application fully in Typescript and run it on AWS Amplify or Azure Static Web Apps
 
+## Next
 ---
 
-[Next - 2. Typescript Journey - Setup](https://brianpsheridan.com/learning/typescript/2022/10/02/setup.html)
+[2. Typescript Journey - Setup](https://brianpsheridan.com/learning/typescript/2022/10/02/setup.html)

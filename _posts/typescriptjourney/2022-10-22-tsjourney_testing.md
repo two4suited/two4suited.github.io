@@ -167,4 +167,7 @@ ts-jest[config] (WARN) message TS151001: If you have issues related to imports, 
 
 To solve this I moved the tsconfig.json to the root directory
 
-[Next - 5. Typescript Journey - Visual Studio Code Testing](https://brianpsheridan.com/learning/typescript/typescript%20journey/2022/10/23/tsjourney_vscode.html)
+## Next
+----
+
+[5. Typescript Journey - Visual Studio Code Testing](https://brianpsheridan.com/learning/typescript/typescript%20journey/2022/10/23/tsjourney_vscode.html)

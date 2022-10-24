@@ -58,6 +58,7 @@ Another alternative to run your app is to use ts-node, this does not require cre
     ts-node index.ts
 ````
 
+## Next
 ---
 
-[Next - 4. Typescript Journey - Testing](https://brianpsheridan.com/learning/typescript/2022/10/22/tsjourney_testing.html)
+[4. Typescript Journey - Testing](https://brianpsheridan.com/learning/typescript/2022/10/22/tsjourney_testing.html)

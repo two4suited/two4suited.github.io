@@ -6,6 +6,8 @@ categories: ["learning","typescript","Typescript Journey"]
 description: "Intro about why I want to take this Journey"
 layout: post
 ---
+[Series Posts](https://brianpsheridan.com/categories.html#typescript-journey)
+
 ## Why?
 
 I have been a .net developer for over 20 years and mostly worked on Microsoft based systems in that time.  As I moved to the Cloud, especially AWS, I started to work more on linux systems and then not even caring what that underlying system was.  Even as .net moved from Framework to Core it got easier to run on multiple systems, but at the end of the day it is a compilied language.  

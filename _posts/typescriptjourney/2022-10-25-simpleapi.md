@@ -6,6 +6,8 @@ categories: ["learning","typescript","Typescript Journey"]
 description: "Let's run a simple API in typescript"
 layout: post
 ---
-## Goal
+[Series Posts](https://brianpsheridan.com/categories.html#typescript-journey)
 
 [Source Code](https://github.com/two4suited/TypescriptJourney/tree/simpleapi)
+
+## Goal

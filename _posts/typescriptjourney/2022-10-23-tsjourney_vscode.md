@@ -6,11 +6,14 @@ categories: ["learning","typescript","Typescript Journey"]
 description: "Setup Visual Studio Code to use with Jest"
 layout: post
 ---
+[Series Posts](https://brianpsheridan.com/categories.html#typescript-journey)
+
+[Source Code](https://github.com/two4suited/TypescriptJourney/tree/vscode)
 ## Goal
 
 Ability to test Typescript app using Jest using the UI
 
-[Source Code](https://github.com/two4suited/TypescriptJourney/tree/vscode)
+
 
 ## Setup
 

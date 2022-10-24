@@ -6,11 +6,14 @@ categories: ["learning","typescript","Typescript Journey"]
 description: "How do we test our typescript app?"
 layout: post
 ---
+[Series Posts](https://brianpsheridan.com/categories.html#typescript-journey)
+
+[Source Code](https://github.com/two4suited/TypescriptJourney/tree/testing)
 ## Goal
 
 Ability to test Typescript app using Jest
 
-[Source Code](https://github.com/two4suited/TypescriptJourney/tree/testing)
+
 
 ## Create Package.json
 

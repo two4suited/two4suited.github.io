@@ -6,9 +6,9 @@ categories: ["learning","typescript","Typescript Journey"]
 description: "Walkthrough creating our first app in typescript"
 layout: post
 ---
+[Series Posts](https://brianpsheridan.com/categories.html#typescript-journey)
 
-
-[**Here is the repo**](https://github.com/two4suited/TypescriptJourney/tree/helloworld)
+[Source Code](https://github.com/two4suited/TypescriptJourney/tree/helloworld)
 
 ## Run your app with Node
 1. Create src folder

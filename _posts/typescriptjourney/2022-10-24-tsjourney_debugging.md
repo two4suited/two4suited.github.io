@@ -6,11 +6,14 @@ categories: ["learning","typescript","Typescript Journey"]
 description: "How do we debug our typescript app?"
 layout: post
 ---
+[Series Posts](https://brianpsheridan.com/categories.html#typescript-journey)
+
+[Source Code](https://github.com/two4suited/TypescriptJourney/tree/debug)
 ## Goal
 
 The ability to use the built in debug tools to debug Typescript programs
 
-[Source Code](https://github.com/two4suited/TypescriptJourney/tree/debug)
+
 
 ## Setup
 

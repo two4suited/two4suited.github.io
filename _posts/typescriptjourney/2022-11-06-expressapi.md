@@ -1,7 +1,7 @@
 ---
 title: "Typescript Journey - Simple API"
-date: 2022-10-25T06:00:00-07:00
-draft: false
+date: 2022-11-06T06:00:00-07:00
+draft: true
 categories: ["learning","typescript","Typescript Journey"]
 description: "Let's run a simple API in typescript"
 layout: post

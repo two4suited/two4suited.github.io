@@ -8,7 +8,7 @@ layout: post
 ---
 [Series Posts](https://brianpsheridan.com/categories.html#typescript-journey)
 
-[Source Code](https://github.com/two4suited/TypescriptJourney/tree/simpleapi)
+[Source Code](https://github.com/two4suited/TypescriptJourney/tree/expressapi)
 
 ## Goal
 Use Express to host a API with typescript and also split our code into different files

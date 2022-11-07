@@ -260,6 +260,11 @@ app.listen(PORT, () => {
 ---
 You can use curl to test your endpoints.  The server will be running on port 3000
 
+Run the app
+```bash
+npm run dev
+```
+
 Get All
 ```bash
 curl http://localhost:3000/api/people -i
@@ -280,7 +285,8 @@ Delete Record
 ```bash
 curl -X DELETE http://localhost:3000/api/people/1 -i
 ```
-
+---
+Next we will put this app in Docker
 
 
 

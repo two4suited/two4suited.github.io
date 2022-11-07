@@ -1,5 +1,5 @@
 ---
-title: "8. Typescript Journey - Simple API"
+title: "8. Typescript Journey - Express API"
 date: 2022-11-06T06:00:00-07:00
 draft: false
 categories: ["learning","typescript","Typescript Journey"]

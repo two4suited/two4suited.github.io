@@ -1,9 +1,9 @@
 ---
-title: "Typescript Journey - Simple API"
+title: "8. Typescript Journey - Simple API"
 date: 2022-11-06T06:00:00-07:00
-draft: true
+draft: false
 categories: ["learning","typescript","Typescript Journey"]
-description: "Let's run a simple API in typescript"
+description: "Let's run an API in Express using Typescript"
 layout: post
 ---
 [Series Posts](https://brianpsheridan.com/categories.html#typescript-journey)

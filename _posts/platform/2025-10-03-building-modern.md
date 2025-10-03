@@ -2,7 +2,7 @@
 title: "Building a Modern Development Platform: From Legacy .NET Framework to Cloud-Native 🚀"
 date: 2025-10-03T06:00:00-07:00
 draft: false
-tags: ["platform","aspire","typespec","kiota","dotnet","terraform","modernization","cloud"]
+categories: ["platform","aspire","typespec","kiota","dotnet","terraform","modernization","cloud"]
 description: "A journey from legacy on-premise .NET Framework applications to a modern, cloud-native platform with standardized tooling, IaC, and developer experience"
 ---
 

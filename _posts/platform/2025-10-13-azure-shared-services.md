@@ -2,7 +2,7 @@
 title: "Building a Modern Development Platform: Azure Shared Services 🌐"
 date: 2025-10-13T06:00:00-07:00
 draft: false
-tags: ["platform","azure","shared-services","api-management","networking"]
+categories: ["platform","azure","shared-services","api-management","networking"]
 description: "Building Azure shared services infrastructure - API Management, Azure Container Registry, shared networking, and common platform services with Terraform"
 ---
 

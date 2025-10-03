@@ -37,7 +37,7 @@ bundle exec jekyll build
 
 ### Content Creation
 - **New Posts**: Copy from `.post-template` for consistent frontmatter structure
-- **Blog Post Headers**: Always include proper YAML frontmatter with title, date, draft status, tags/categories, description, and layout
+- **Blog Post Headers**: Always include proper YAML frontmatter with title, date, draft status, categories, description, and layout
 - **Series Posts**: Include series navigation link at top: `[Series Posts](https://brianpsheridan.com/categories.html#typescript-journey)`
 - **Code Examples**: Use fenced code blocks with language specification
 - **Images**: Store in `static/images/posts/` directory
@@ -52,7 +52,7 @@ Always include complete YAML frontmatter headers for blog posts. Use this struct
 title: "Building a Modern Development Platform: From Legacy .NET Framework to Cloud-Native"
 date: 2025-10-04T06:00:00-07:00
 draft: false
-tags: ["platform","aspire","typespec","kiota","dotnet","terraform","modernization","cloud"]
+categories: ["platform","aspire","typespec","kiota","dotnet","terraform","modernization","cloud"]
 description: "A journey from legacy on-premise .NET Framework applications to a modern, cloud-native platform with standardized tooling, IaC, and developer experience"
 layout: post  # Optional, defaults to post for _posts/ directory
 ---
@@ -62,7 +62,7 @@ layout: post  # Optional, defaults to post for _posts/ directory
 - `title`: Descriptive title (often includes emojis for visual appeal)
 - `date`: ISO format with timezone (YYYY-MM-DDTHH:MM:SS-TZ)
 - `draft`: Boolean for publication status
-- `tags` or `categories`: Array for content organization
+- `categories`: Array for content organization and grouping
 - `description`: SEO-friendly meta description
 
 ### Writing Style

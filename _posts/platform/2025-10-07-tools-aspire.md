@@ -1,5 +1,22 @@
 ---
-title: "Building a Modern Development Platform: .NET Aspire for Local Development 💻"
+title: "Building a Modern Development Platform:2. Name your repository `blog-platform-aspire`
+3. Make it public or private (your choice)
+4. Click **"Create repository"**
+
+### Step 2: Clone and Open in Dev Container
+
+Clone your n### Step 7: Add Aspire Service Defaults
+
+Add a project reference to the ServiceDefaults project in the API project:
+
+```bash
+cd src/WeatherApp.Api
+dotnet add reference ../WeatherApp.ServiceDefaults/WeatherApp.ServiceDefaults.csproj
+```itory locally:
+
+```bash
+git clone https://github.com/two4suited/blog-platform-aspire
+cd blog-platform-aspiree for Local Development 💻"
 date: 2025-10-07T06:00:00-07:00
 draft: false
 categories: ["platform","aspire","dotnet","local-development","orchestration"]
@@ -29,7 +46,7 @@ By the end of this post, you'll have a complete understanding of how Aspire simp
 
 Aspire eliminates all of this friction. Let's see how.
 
-> **GitHub Repository**: All code from this tutorial is available at [github.com/YOUR_USERNAME/aspire-weather-app](https://github.com/YOUR_USERNAME/aspire-weather-app) - created from the official [Aspire Dev Container template](https://github.com/dotnet/aspire-devcontainer)
+> **GitHub Repository**: All code from this tutorial is available at [github.com/two4suited/blog-platform-aspire](https://github.com/two4suited/blog-platform-aspire) - created from the official [Aspire Dev Container template](https://github.com/dotnet/aspire-devcontainer)
 
 ## Prerequisites 📋
 
@@ -76,93 +93,65 @@ The first time you do this, Docker will build the dev container. This takes a fe
 
 Grab a coffee ☕ - subsequent opens will be much faster!
 
-### Step 3: Understanding the Dev Container Configuration
+### Step 3: Understanding the Dev Container Setup
 
-Let's peek at `.devcontainer/devcontainer.json` to see what's configured:
+The Aspire dev container template automatically configures everything you need for Aspire development:
 
-```json
-{
-  "name": ".NET Aspire",
-  "image": "mcr.microsoft.com/devcontainers/dotnet:9.0-bookworm",
-  "features": {
-    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
-    "ghcr.io/devcontainers/features/node:1": { "version": "lts" }
-  },
-  "hostRequirements": {
-    "cpus": 8,
-    "memory": "32gb",
-    "storage": "64gb"
-  },
-  "onCreateCommand": "curl -sSL https://aspire.dev/install.sh | bash",
-  "postStartCommand": "dotnet dev-certs https --trust",
-  "customizations": {
-    "vscode": {
-      "extensions": [
-        "ms-dotnettools.csdevkit",
-        "GitHub.copilot-chat",
-        "GitHub.copilot"
-      ]
-    }
-  }
-}
-```
+**Everything is Pre-Installed!** 🎉
+- .NET 9 SDK ✅
+- Aspire workload ✅  
+- Aspire project templates ✅
+- Aspire CLI ✅
+- HTTPS certificates ✅
 
-**Key features:**
-- **Docker-in-Docker**: Allows Aspire to run containers (like Cosmos DB emulator) inside the dev container
-- **Node.js LTS**: Pre-installed for our React frontend
-- **Aspire workload**: Automatically installed via the install script
-- **HTTPS certificates**: Trusted automatically for local development
-- **VS Code extensions**: C# Dev Kit and Copilot pre-configured
+> **For complete dev container configuration details** (including Node.js and Docker setup for full-stack applications), see the official [Aspire Dev Containers documentation](https://learn.microsoft.com/en-us/dotnet/aspire/get-started/dev-containers).
 
-### Step 4: Install Aspire Templates and CLI
+### Step 4: Create Aspire Projects Using CLI Template Selection
 
-Once the container is ready, open a new terminal in VS Code (<kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>`</kbd>). The dev container has already installed the Aspire workload, but we need to install the project templates and CLI:
+We'll use the Aspire CLI's interactive experience to create our projects:
 
-```bash
-# Install Aspire project templates
-dotnet new install Aspire.ProjectTemplates
-
-# Install Aspire CLI (global tool)
-dotnet tool install -g aspire
-```
-
-**Why Install These?**
-- **Aspire Templates**: Provide `aspire-starter`, `aspire-empty`, and individual project templates
-- **Aspire CLI**: Offers an interactive experience with commands like `aspire new`, `aspire run`, and `aspire add`
-
-### Step 5: Create the Aspire Starter Project
-
-Now we can create our project using either the .NET CLI or the new Aspire CLI:
-
-**Option 1: Using .NET CLI**
-```bash
-dotnet new aspire-starter -n WeatherApp
-```
-
-**Option 2: Using Aspire CLI (Interactive)**
 ```bash
 aspire new
 ```
 
-The Aspire CLI provides an interactive experience where you can:
-- Choose from available templates
-- Set the project name
-- Select the output directory
-- Automatically get the latest templates
+The Aspire CLI will guide you through the setup:
 
-Let's use the .NET CLI for this tutorial:
+1. **Template Selection Menu:**
+   ```
+   Select a project template:
+   > Starter template
+     AppHost and service defaults
+     AppHost  
+     Service defaults
+     Integration tests
+   ```
+
+2. **Select "AppHost and service defaults"** - this creates both projects we need in one step
+
+3. **Project Name:** When prompted, enter `WeatherApp`
+
+4. **Output Location:** When prompted for the output directory, enter `src` (this will create the `src` directory for you)
+
+This creates both essential components:
+- **AppHost** - The orchestrator that manages all our services
+- **Service defaults** - Shared configurations for telemetry, health checks, and resilience
+
+This will create in the `src/` directory:
+- `WeatherApp.AppHost/` - Orchestration project
+- `WeatherApp.ServiceDefaults/` - Shared configuration project  
+- `WeatherApp.sln` - Solution file tying them together
+
+**Why "AppHost and service defaults"?**
+This template gives us:
+- Clean foundation without sample projects (unlike Starter template)
+- Both essential Aspire components in one step
+- Proper project references already configured
+- Ready to add our own API and frontend projects
+
+Let's explore the structure that was created:
+
 ```bash
-dotnet new aspire-starter -n WeatherApp
-```
-
-This creates a solution with two key projects:
-- **WeatherApp.AppHost** - The orchestrator that configures and runs your distributed application
-- **WeatherApp.ServiceDefaults** - Shared service configurations (telemetry, health checks, resilience)
-
-Let's explore the structure:
-
-```bash
-cd WeatherApp
+cd src
 ls -la
 ```
 
@@ -173,28 +162,65 @@ WeatherApp.ServiceDefaults/ # Shared configuration
 WeatherApp.sln              # Solution file
 ```
 
-### Step 6: Understanding the AppHost
+### Step 5: Understanding the AppHost
 
-Open `WeatherApp.AppHost/Program.cs`. The starter template includes a basic API service:
+Open `src/WeatherApp.AppHost/AppHost.cs`. The AppHost template has a minimal setup:
 
 ```csharp
 var builder = DistributedApplication.CreateBuilder(args);
 
-var apiService = builder.AddProject<Projects.WeatherApp_ApiService>("apiservice");
-
-builder.AddProject<Projects.WeatherApp_Web>("webfrontend")
-    .WithReference(apiService);
+// Add your resources here
 
 builder.Build().Run();
 ```
 
-This is the heart of Aspire orchestration. Every service, database, and dependency is defined here. The `WithReference()` method sets up service-to-service communication automatically.
+This is the heart of Aspire orchestration. Every service, database, and dependency will be defined here. As we add projects, we'll use methods like:
+- `builder.AddProject<>()` to add .NET projects
+- `builder.AddNpmApp()` to add Node.js/React apps
+- `builder.AddAzureCosmosDB()` to add databases
+- `.WithReference()` to set up service-to-service communication
 
 **WeatherApp.ServiceDefaults** contains extension methods that wire up:
 - OpenTelemetry for distributed tracing
 - Health check endpoints
 - Service discovery
 - Resilience patterns (retry, circuit breaker, etc.)
+
+## Running the Basic Aspire Dashboard 🎛️
+
+Before we add any services, let's see Aspire in action with just the basic setup:
+
+```bash
+aspire run
+```
+
+**What `aspire run` does:**
+- Automatically searches for and finds the AppHost project in the current directory and subdirectories
+- Creates configuration in the `.aspire` folder with `settings.json` for project paths
+- Builds the AppHost project
+- Starts the Aspire Dashboard (even with no services yet)
+- Shows the foundation for our distributed application
+
+The output will show something like:
+```
+Dashboard:  https://localhost:17178/login?t=17f974bf68e390b0d4548af8d7e38b65
+    Logs:  /home/vscode/.aspire/cli/logs/apphost-1295-2025-07-14-18-16-13.log
+```
+
+**Certificate Warning**: The first time you access the dashboard URL, you'll see a certificate error in your browser. This is expected behavior in the dev container environment. 
+
+> **For complete details on handling certificate warnings**, see the [Aspire Dev Containers documentation](https://learn.microsoft.com/en-us/dotnet/aspire/get-started/dev-containers#quick-start-using-template-repository).
+
+Once you access the dashboard, you'll see it's ready and waiting for services! The dashboard shows:
+- **Resources** - Currently empty, but ready for our services
+- **Console Logs** - Dashboard and AppHost logs
+- **Structured Logs** - Searchable logs with correlation IDs
+- **Traces** - Ready for distributed tracing
+- **Metrics** - Performance monitoring ready
+
+**Stop the Application**: Press <kbd>Ctrl</kbd>+<kbd>C</kbd> in the terminal to stop Aspire when you're ready to continue.
+
+Now let's add some services to see the real power of Aspire orchestration!
 
 ## Adding a .NET Web API 🌐
 
@@ -205,53 +231,39 @@ The starter template includes sample projects, but let's create our own clean we
 From the terminal in VS Code (inside the dev container):
 
 ```bash
-# From the WeatherApp solution directory
+# Navigate to the src directory where our projects are created
+cd src
 dotnet new webapi -n WeatherApp.Api
-dotnet sln add WeatherApp.Api/WeatherApp.Api.csproj
+dotnet sln WeatherApp.sln add WeatherApp.Api/WeatherApp.Api.csproj
 ```
 
 ### Step 7: Add Aspire Service Defaults
 
-Install the service defaults package in the API project:
+Add a project reference to the ServiceDefaults project in the API project:
 
 ```bash
 cd WeatherApp.Api
-dotnet add package Aspire.Microsoft.Extensions.ServiceDefaults
+dotnet add reference ../WeatherApp.ServiceDefaults/WeatherApp.ServiceDefaults.csproj
 ```
 
-Update `Program.cs` to wire up the service defaults:
+Update `WeatherApp.Api/Program.cs` to wire up the service defaults:
 
+**Add ServiceDefaults** after `WebApplication.CreateBuilder(args)`:
 ```csharp
-var builder = WebApplication.CreateBuilder(args);
-
-// Add Aspire service defaults (telemetry, health checks, service discovery)
 builder.AddServiceDefaults();
-
-builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
-var app = builder.Build();
-
-// Map Aspire default endpoints
-app.MapDefaultEndpoints();
-
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
-
-app.UseHttpsRedirection();
-app.UseAuthorization();
-app.MapControllers();
-
-app.Run();
 ```
+
+This integrates your API with Aspire's telemetry, health checks, service discovery, and resilience patterns from the ServiceDefaults project.
 
 ### Step 8: Register the API in the AppHost
 
-Update `WeatherApp.AppHost/Program.cs`:
+First, add a project reference from AppHost to the API:
+
+```bash
+dotnet add src/WeatherApp.AppHost/WeatherApp.AppHost.csproj reference src/WeatherApp.Api/WeatherApp.Api.csproj
+```
+
+Now update `WeatherApp.AppHost/Program.cs`:
 
 ```csharp
 var builder = DistributedApplication.CreateBuilder(args);
@@ -266,112 +278,105 @@ builder.Build().Run();
 
 ### Step 9: Create the React App
 
-The dev container already has Node.js installed, so we can create our React app directly:
+The dev container already has Node.js installed, so we can create our React app with Vite:
 
 ```bash
-# From the WeatherApp solution directory
-npx create-react-app WeatherApp.Web --template typescript
+# From the src directory  
+npm create vite@latest WeatherApp.Web -- --template react-ts
+cd WeatherApp.Web
+npm install
 ```
 
 ### Step 10: Add the React App to Aspire
 
-Aspire can orchestrate non-.NET projects too! Update `WeatherApp.AppHost/Program.cs`:
+First, install the Aspire Community Toolkit for Node.js extensions:
+
+```bash
+dotnet add src/WeatherApp.AppHost/WeatherApp.AppHost.csproj package CommunityToolkit.Aspire.Hosting.NodeJS.Extensions
+```
+
+Now update `WeatherApp.AppHost/Program.cs` to use the Vite integration:
 
 ```csharp
 var builder = DistributedApplication.CreateBuilder(args);
 
 var api = builder.AddProject<Projects.WeatherApp_Api>("weatherapi");
 
-// Add the React frontend as an npm app
-var frontend = builder.AddNpmApp("frontend", "../WeatherApp.Web")
+// Add the React frontend using Vite integration
+var frontend = builder.AddViteApp("frontend", "../WeatherApp.Web")
+    .WithNpmPackageInstallation()
     .WithReference(api)
-    .WithHttpEndpoint(port: 3000, env: "PORT")
+    .WithEnvironment("BROWSER", "false")
     .WithExternalHttpEndpoints();
 
 builder.Build().Run();
 ```
 
-The `WithReference(api)` call makes the API URL available to the React app via environment variables.
+Key features of this integration:
+- **`AddViteApp()`** - Uses the official Vite integration from Aspire Community Toolkit
+- **`WithNpmPackageInstallation()`** - Automatically runs `npm install` before starting the dev server
+- **`WithReference(api)`** - Makes the API URL available to the React app via environment variables
+- **`WithExternalHttpEndpoints()`** - Exposes the Vite dev server for external access
 
-## Running with Aspire Dashboard 🎛️
+## Running with Services Added 🚀
 
-### Step 11: Launch the Application
+### Step 11: Launch the Complete Application
 
-Now for the magic moment! You have several options to run your Aspire application:
+Now let's run our application with all services configured:
 
-**Option 1: VS Code Run Button**
-Open `WeatherApp.AppHost/Program.cs` and click the **Run** button in the top right corner of the editor (or press <kbd>F5</kbd>).
-
-**Option 2: Aspire CLI (Recommended)**
 ```bash
-cd WeatherApp
 aspire run
 ```
 
-**Option 3: .NET CLI**
-```bash
-cd WeatherApp
-dotnet run --project WeatherApp.AppHost
-```
-
-**Why use `aspire run`?**
-The Aspire CLI provides additional benefits:
-- Automatically searches for the AppHost project in current/subdirectories
-- Installs and trusts HTTPS certificates automatically
-- Provides better logging and output formatting
-- Enhanced debugging experience
-
-Aspire will:
-✅ Start the .NET API
+This time, Aspire will:
+✅ Start the .NET Weather API
 ✅ Start the React dev server  
 ✅ Launch the Aspire Dashboard
 ✅ Set up service discovery between all components
 
-The output will show something like:
-```
-Dashboard:  https://localhost:17178/login?t=17f974bf68e390b0d4548af8d7e38b65
-    Logs:  /home/vscode/.aspire/cli/logs/apphost-1295-2025-07-14-18-16-13.log
-```
-
-**Important Note**: The first time you access the dashboard, you'll see a certificate warning in your browser. This is expected because the dev container uses a self-signed certificate. Verify the URL matches your dashboard (usually `https://localhost:15888` or similar) and proceed past the warning.
-
-![Browser Certificate Warning](https://learn.microsoft.com/en-us/dotnet/aspire/docs/get-started/media/browser-certificate-error.png)
-
-After accepting the certificate, you'll see the Aspire Dashboard:
-
-![Aspire Dashboard](https://learn.microsoft.com/en-us/dotnet/aspire/docs/get-started/media/aspire-dashboard-in-devcontainer.png)
-
-The dashboard shows:
-- **Resources** - All running services (API, frontend, databases)
-- **Console Logs** - Aggregated logs from all services
-- **Structured Logs** - Searchable, filterable logs with correlation
-- **Traces** - Distributed tracing across service calls  
-- **Metrics** - Real-time performance metrics
-
-**Port Forwarding**: Aspire 9.1+ automatically configures port forwarding, so clicking on endpoint URLs in the dashboard tunnels to the services running inside your dev container. No manual port configuration needed!
-
-### Step 12: Verify Service Discovery
-
-The React app can now discover the API automatically. Aspire injects the API URL as an environment variable.
-
-In your React app, you can access it like:
-
-```typescript
-// WeatherApp.Web/src/config.ts
-export const API_URL = process.env.REACT_APP_services__weatherapi__https__0 || 'http://localhost:5000';
-```
-
-Aspire uses a naming convention: `services__{service-name}__{protocol}__{endpoint-index}`
+The dashboard now shows all your services running and their interconnections!
 
 ## Connecting React to the Weather API 🌤️
+
+### Step 12: Configure Vite Proxy
+
+First, configure Vite to proxy API calls to the backend. Update `WeatherApp.Web/vite.config.ts`:
+
+```typescript
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+
+// https://vitejs.dev/config/
+export default defineConfig({
+  plugins: [react()],
+  server: {
+    port: 5173,
+    host: true,
+    proxy: {
+      '/api': {
+        target: process.env.services__weatherapi__https__0 || 
+                process.env.services__weatherapi__http__0,
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/api/, '')
+      }
+    }
+  }
+})
+```
+
+This configuration:
+- **`proxy: '/api'`** - Intercepts all requests starting with `/api`
+- **`target`** - Uses Aspire's injected environment variables for the API URL
+- **`changeOrigin: true`** - Changes the origin of the request to match the target
+- **`secure: false`** - Allows self-signed certificates in development
+- **`rewrite`** - Removes `/api` prefix before forwarding to the backend
 
 ### Step 13: Create the Weather Service
 
 Create `WeatherApp.Web/src/services/weatherService.ts`:
 
 ```typescript
-import { API_URL } from '../config';
-
 export interface WeatherForecast {
   date: string;
   temperatureC: number;
@@ -382,7 +387,8 @@ export interface WeatherForecast {
 
 export const weatherService = {
   async getForecast(): Promise<WeatherForecast[]> {
-    const response = await fetch(`${API_URL}/api/weather`);
+    // Use the Vite proxy - requests to /api/* get forwarded to the backend
+    const response = await fetch('/api/weather');
     if (!response.ok) {
       throw new Error('Failed to fetch weather data');
     }
@@ -393,7 +399,185 @@ export const weatherService = {
 
 ### Step 14: Update the React Component
 
-TODO: Add React component code to display weather data with nice UI
+Update `WeatherApp.Web/src/App.tsx` to display the weather data:
+
+```typescript
+import { useState, useEffect } from 'react'
+import { weatherService } from './services/weatherService'
+import type { WeatherForecast } from './services/weatherService'
+import './App.css'
+
+function App() {
+  const [weatherData, setWeatherData] = useState<WeatherForecast[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const fetchWeatherData = async () => {
+      try {
+        setLoading(true)
+        setError(null)
+        const data = await weatherService.getForecast()
+        setWeatherData(data)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to fetch weather data')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchWeatherData()
+  }, [])
+
+  if (loading) {
+    return <div className="loading">Loading weather data...</div>
+  }
+
+  if (error) {
+    return (
+      <div className="error">
+        <h2>Error</h2>
+        <p>{error}</p>
+        <button onClick={() => window.location.reload()}>Retry</button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="weather-app">
+      <h1>Weather Forecast</h1>
+      <div className="weather-table-container">
+        <table className="weather-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Location</th>
+              <th>Temperature (°C)</th>  
+              <th>Temperature (°F)</th>
+              <th>Summary</th>
+            </tr>
+          </thead>
+          <tbody>
+            {weatherData.map((forecast, index) => (
+              <tr key={index}>
+                <td>{new Date(forecast.date).toLocaleDateString()}</td>
+                <td>{forecast.location}</td>
+                <td>{forecast.temperatureC}°C</td>
+                <td>{forecast.temperatureF}°F</td>
+                <td>{forecast.summary}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+export default App
+```
+
+This component includes:
+- **Loading states** - Shows loading spinner while fetching data
+- **Error handling** - Displays errors with retry option
+- **TypeScript types** - Fully typed with the WeatherForecast interface
+- **Clean table layout** - Displays all weather data in an organized table
+- **Date formatting** - Properly formats dates for display
+
+Add the corresponding styles in `WeatherApp.Web/src/App.css`:
+
+```css
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.weather-app {
+  text-align: center;
+}
+
+.weather-app h1 {
+  color: #213547;
+  margin-bottom: 2rem;
+}
+
+.weather-table-container {
+  overflow-x: auto;
+  margin: 2rem 0;
+}
+
+.weather-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 auto;
+  background: white;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.weather-table th {
+  background: #646cff;
+  color: white;
+  padding: 1rem;
+  text-align: left;
+  font-weight: 600;
+}
+
+.weather-table td {
+  padding: 1rem;
+  border-bottom: 1px solid #e5e5e5;
+  text-align: left;
+}
+
+.weather-table tbody tr:hover {
+  background: #f8f9fa;
+}
+
+.weather-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.loading {
+  text-align: center;
+  padding: 2rem;
+  font-size: 1.2rem;
+  color: #646cff;
+}
+
+.error {
+  text-align: center;
+  padding: 2rem;
+  color: #d32f2f;
+}
+
+.error h2 {
+  margin-bottom: 1rem;
+}
+
+.error button {
+  background: #646cff;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  margin-top: 1rem;
+}
+
+.error button:hover {
+  background: #535bf2;
+}
+```
+
+The CSS provides:
+- **Modern styling** - Clean, professional appearance with Vite's default color scheme
+- **Responsive design** - Table scrolls horizontally on smaller screens
+- **Interactive elements** - Hover effects and styled buttons
+- **Accessible design** - Good contrast ratios and readable typography
+- **Loading/Error states** - Styled feedback for different application states
 
 ## Adding Cosmos DB Integration 🗄️
 
@@ -405,7 +589,6 @@ Aspire has built-in support for Azure Cosmos DB emulator. You can add it using e
 
 **Option 1: Aspire CLI (Interactive)**
 ```bash
-cd WeatherApp
 aspire add cosmos
 ```
 
@@ -413,7 +596,7 @@ The Aspire CLI will show you available Cosmos DB integration packages and let yo
 
 **Option 2: Manual NuGet Package**
 ```bash
-cd WeatherApp.AppHost
+cd src/WeatherApp.AppHost
 dotnet add package Aspire.Hosting.Azure.CosmosDB
 ```
 
@@ -450,7 +633,7 @@ builder.Build().Run();
 Add the Cosmos DB client package:
 
 ```bash
-cd WeatherApp.Api
+cd src/WeatherApp.Api
 dotnet add package Aspire.Microsoft.Azure.Cosmos
 ```
 
@@ -610,9 +793,9 @@ In our next post, we'll dive into **TypeSpec for Contract-First API Development*
 ### Try It Yourself
 Clone the complete example:
 ```bash
-git clone https://github.com/YOUR_USERNAME/aspire-weather-app
-cd aspire-weather-app
-dotnet run --project WeatherApp.AppHost
+git clone https://github.com/two4suited/blog-platform-aspire
+cd blog-platform-aspire
+aspire run
 ```
 
 Have questions or feedback? Join the [Aspire Discord](https://aka.ms/aspire/discord) or leave a comment below!

@@ -263,7 +263,7 @@ First, add a project reference from AppHost to the API:
 dotnet add src/WeatherApp.AppHost/WeatherApp.AppHost.csproj reference src/WeatherApp.Api/WeatherApp.Api.csproj
 ```
 
-Now update `WeatherApp.AppHost/Program.cs`:
+Now update `WeatherApp.AppHost/AppHost.cs`:
 
 ```csharp
 var builder = DistributedApplication.CreateBuilder(args);
@@ -295,7 +295,7 @@ First, install the Aspire Community Toolkit for Node.js extensions:
 dotnet add src/WeatherApp.AppHost/WeatherApp.AppHost.csproj package CommunityToolkit.Aspire.Hosting.NodeJS.Extensions
 ```
 
-Now update `WeatherApp.AppHost/Program.cs` to use the Vite integration:
+Now update `WeatherApp.AppHost/AppHost.cs` to use the Vite integration:
 
 ```csharp
 var builder = DistributedApplication.CreateBuilder(args);
@@ -458,8 +458,8 @@ function App() {
             </tr>
           </thead>
           <tbody>
-            {weatherData.map((forecast, index) => (
-              <tr key={index}>
+            {weatherData.map((forecast) => (
+              <tr key={forecast.id}>
                 <td>{new Date(forecast.date).toLocaleDateString()}</td>
                 <td>{forecast.location}</td>
                 <td>{forecast.temperatureC}°C</td>
@@ -587,72 +587,189 @@ Now let's back our API with Azure Cosmos DB for persistent storage. Thanks to th
 
 Aspire has built-in support for Azure Cosmos DB emulator. You can add it using either approach:
 
-**Option 1: Aspire CLI (Interactive)**
+Add the Cosmos DB integration using the Aspire CLI:
+
 ```bash
 aspire add cosmos
 ```
 
-The Aspire CLI will show you available Cosmos DB integration packages and let you choose. It's much easier than searching through NuGet packages!
+The Aspire CLI will show you available Cosmos DB integration packages and automatically install the correct one.
 
-**Option 2: Manual NuGet Package**
-```bash
-cd src/WeatherApp.AppHost
-dotnet add package Aspire.Hosting.Azure.CosmosDB
-```
-
-The `aspire add` command is particularly useful because:
-- Shows all available Aspire integration packages
-- Filters packages based on your search term
-- Automatically installs the correct package version
-- No need to remember exact NuGet package names
-
-Update `Program.cs`:
+Update `WeatherApp.AppHost/AppHost.cs`:
 
 ```csharp
 var builder = DistributedApplication.CreateBuilder(args);
 
-// Add Cosmos DB emulator
-var cosmosdb = builder.AddAzureCosmosDB("cosmosdb")
-    .RunAsEmulator()
-    .AddDatabase("weatherdb");
+#pragma warning disable ASPIRECOSMOSDB001
 
-// Pass Cosmos DB connection to the API
+var cosmos = builder.AddAzureCosmosDB("cosmos").RunAsPreviewEmulator(
+    emulator =>
+    {
+        emulator.WithDataExplorer();            
+    });
+
+#pragma warning restore ASPIRECOSMOSDB001
+
+var database = cosmos.AddCosmosDatabase("WeatherDB");
+var container = database.AddContainer("WeatherData", "/id");
+
+// Pass Cosmos DB container connection to the API
 var api = builder.AddProject<Projects.WeatherApp_Api>("weatherapi")
-    .WithReference(cosmosdb);
+    .WithReference(container);
 
-var frontend = builder.AddNpmApp("frontend", "../WeatherApp.Web")
+// Add the React frontend using Vite integration
+var frontend = builder.AddViteApp("frontend", "../WeatherApp.Web")
+    .WithNpmPackageInstallation()
     .WithReference(api)
-    .WithHttpEndpoint(port: 3000, env: "PORT")
+    .WithEnvironment("BROWSER", "false")
     .WithExternalHttpEndpoints();
 
 builder.Build().Run();
 ```
 
-### Step 16: Configure the API to Use Cosmos DB
+### Step 16: Create the Data Layer Project
 
-Add the Cosmos DB client package:
+Let's create a separate data project to handle Entity Framework and data access:
+
+```bash
+# From the src directory
+cd src
+dotnet new classlib -n WeatherApp.Data
+dotnet sln WeatherApp.sln add WeatherApp.Data/WeatherApp.Data.csproj
+```
+
+Add the Entity Framework Cosmos package:
+
+```bash
+cd WeatherApp.Data
+dotnet add package Aspire.Microsoft.EntityFrameworkCore.Cosmos
+```
+
+Create the weather entity in `WeatherApp.Data/WeatherForecast.cs`:
+
+```csharp
+namespace WeatherApp.Data;
+
+public record WeatherForecast(Guid Id, DateOnly Date, int TemperatureC, string? Summary, string Location)
+{
+    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
+}
+```
+
+Create the Entity Framework context in `WeatherApp.Data/WeatherContext.cs`:
+
+```csharp
+using Microsoft.EntityFrameworkCore;
+
+namespace WeatherApp.Data;
+
+public class WeatherContext : DbContext
+{
+    public WeatherContext(DbContextOptions<WeatherContext> options) : base(options)
+    {
+    }
+
+    public DbSet<WeatherForecast> WeatherForecasts { get; set; }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<WeatherForecast>(entity =>
+        {
+            entity.ToContainer("WeatherData");
+            entity.HasKey(w => w.Id);
+            entity.HasPartitionKey(w => w.Location);
+        });
+    }
+}
+```
+
+Create a service to handle weather data operations in `WeatherApp.Data/WeatherService.cs`:
+
+```csharp
+using Microsoft.EntityFrameworkCore;
+
+namespace WeatherApp.Data;
+
+public interface IWeatherService
+{
+    Task<List<WeatherForecast>> GetAllForecastsAsync();
+    Task<WeatherForecast> AddForecastAsync(WeatherForecast forecast);
+}
+
+public class WeatherService : IWeatherService
+{
+    private readonly WeatherContext _context;
+
+    public WeatherService(WeatherContext context)
+    {
+        _context = context;
+    }
+
+    public async Task<List<WeatherForecast>> GetAllForecastsAsync()
+    {
+        return await _context.WeatherForecasts.ToListAsync();
+    }
+
+    public async Task<WeatherForecast> AddForecastAsync(WeatherForecast forecast)
+    {
+        _context.WeatherForecasts.Add(forecast);
+        await _context.SaveChangesAsync();
+        return forecast;
+    }
+}
+```
+
+Add a service registration extension method in `WeatherApp.Data/ServiceExtensions.cs`:
+
+```csharp
+using Microsoft.Extensions.DependencyInjection;
+
+namespace WeatherApp.Data;
+
+public static class ServiceExtensions
+{
+    public static IServiceCollection AddWeatherServices(this IServiceCollection services)
+    {
+        services.AddScoped<IWeatherService, WeatherService>();
+        return services;
+    }
+}
+```
+
+### Step 17: Configure the API to Use the Data Layer
+
+Add a reference from the API to the Data project:
 
 ```bash
 cd src/WeatherApp.Api
-dotnet add package Aspire.Microsoft.Azure.Cosmos
+dotnet add reference ../WeatherApp.Data/WeatherApp.Data.csproj
+```
+
+Add the Entity Framework Cosmos package to the API:
+
+```bash
+cd src/WeatherApp.Api
+dotnet add package Aspire.Microsoft.EntityFrameworkCore.Cosmos
 ```
 
 Update `Program.cs`:
 
 ```csharp
+using WeatherApp.Data;
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
-// Add Cosmos DB client - connection string is injected automatically by Aspire
-builder.AddAzureCosmosClient("cosmosdb");
+// Add Entity Framework with Cosmos DB - connection is injected automatically by Aspire
+builder.AddCosmosDbContext<WeatherContext>("WeatherData");
+
+// Register weather services from the Data project
+builder.Services.AddWeatherServices();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-
-// Register our weather data service
-builder.Services.AddSingleton<IWeatherService, WeatherService>();
 
 var app = builder.Build();
 
@@ -671,13 +788,206 @@ app.MapControllers();
 app.Run();
 ```
 
-### Step 17: Create the Weather Service
+### Step 18: Create Minimal API Endpoints
 
-TODO: Add implementation of WeatherService with Cosmos DB queries
+Replace the default WeatherForecast endpoint in `WeatherApp.Api/Program.cs` with endpoints that use the weather service. Add this code before `app.Run()`:
 
-### Step 18: Seed Initial Data
+```csharp
+// Weather API endpoint
+app.MapGet("/weatherforecast", async (IWeatherService weatherService) =>
+{
+    var forecasts = await weatherService.GetAllForecastsAsync();
+    return Results.Ok(forecasts);
+})
+.WithName("GetWeatherForecast");
+```
 
-TODO: Add data seeding logic
+Remove the existing weather forecast endpoint and summaries array that was generated by the template, and replace it with the service-based endpoints above.
+
+### Step 19: Add a Data Seeding Worker Service
+
+Let's add a worker service to seed initial data and demonstrate Aspire's ability to orchestrate background services. Create a new worker project:
+
+```bash
+# From the src directory
+cd src
+dotnet new worker -n WeatherApp.Seed
+dotnet sln WeatherApp.sln add WeatherApp.Seed/WeatherApp.Seed.csproj
+```
+
+Add the necessary references to the seeder:
+
+```bash
+cd WeatherApp.Seed
+dotnet add reference ../WeatherApp.ServiceDefaults/WeatherApp.ServiceDefaults.csproj
+dotnet add reference ../WeatherApp.Data/WeatherApp.Data.csproj
+dotnet add package Aspire.Microsoft.EntityFrameworkCore.Cosmos
+```
+
+Update `WeatherApp.Seed/Program.cs` to integrate with Aspire and register the data services:
+
+```csharp
+using WeatherApp.Seed;
+using WeatherApp.Data;
+
+var builder = Host.CreateApplicationBuilder(args);
+
+// Add Aspire service defaults
+builder.AddServiceDefaults();
+
+// Add Entity Framework with Cosmos DB
+builder.AddCosmosDbContext<WeatherContext>("WeatherData");
+
+// Register weather services from the Data project
+builder.Services.AddWeatherServices();
+
+builder.Services.AddHostedService<Worker>();
+
+var host = builder.Build();
+host.Run();
+```
+
+Update the `WeatherApp.Seed/Worker.cs` to use service scoping and application lifetime management:
+
+```csharp
+using WeatherApp.Data;
+
+namespace WeatherApp.Seed;
+
+public class Worker : BackgroundService
+{
+    private readonly ILogger<Worker> _logger;
+    private readonly IServiceScopeFactory _serviceScopeFactory;
+    private readonly IHostApplicationLifetime _hostApplicationLifetime;
+
+    public Worker(ILogger<Worker> logger, IServiceScopeFactory serviceScopeFactory, IHostApplicationLifetime hostApplicationLifetime)
+    {
+        _logger = logger;
+        _serviceScopeFactory = serviceScopeFactory;
+        _hostApplicationLifetime = hostApplicationLifetime;
+    }
+
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        _logger.LogInformation("Weather Seeder starting at: {time}", DateTimeOffset.Now);
+        
+        using var scope = _serviceScopeFactory.CreateScope();
+        var weatherService = scope.ServiceProvider.GetRequiredService<IWeatherService>();
+        
+        // Check if data already exists
+        var existingForecasts = await weatherService.GetAllForecastsAsync();
+        if (existingForecasts.Any())
+        {
+            _logger.LogInformation("Weather data already exists. Skipping seed.");
+            _hostApplicationLifetime.StopApplication();
+            return;
+        }
+
+        // Seed fake weather data
+        _logger.LogInformation("Seeding weather data...");
+        
+        var summaries = new[]
+        {
+            "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
+        };
+
+        var cities = new[]
+        {
+            "New York, USA", "London, UK", "Tokyo, Japan", "Sydney, Australia", "Paris, France",
+            "Berlin, Germany", "Toronto, Canada", "Mumbai, India", "São Paulo, Brazil", "Cairo, Egypt",
+            "Moscow, Russia", "Beijing, China", "Mexico City, Mexico", "Lagos, Nigeria", "Bangkok, Thailand",
+            "Dubai, UAE", "Singapore", "Buenos Aires, Argentina", "Stockholm, Sweden", "Amsterdam, Netherlands"
+        };
+
+        var forecasts = Enumerable.Range(1, 5).Select(index =>
+            new WeatherForecast
+            (
+                Guid.NewGuid(),
+                DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
+                Random.Shared.Next(-20, 55),
+                summaries[Random.Shared.Next(summaries.Length)],
+                cities[Random.Shared.Next(cities.Length)]
+            ))
+            .ToArray();
+
+        foreach (var forecast in forecasts)
+        {
+            await weatherService.AddForecastAsync(forecast);
+            _logger.LogInformation("Added forecast: {Date} - {Summary} - {TempC}°C", 
+                forecast.Date, forecast.Summary, forecast.TemperatureC);
+        }
+        
+        _logger.LogInformation("Weather Seeder completed seeding {Count} forecasts at: {time}", 
+            forecasts.Length, DateTimeOffset.Now);
+        
+        // Stop the application after seeding is complete
+        _hostApplicationLifetime.StopApplication();
+    }
+}
+```
+
+**Key Features of this Implementation:**
+
+- **Service Scoping**: Uses `IServiceScopeFactory` to properly resolve scoped services from a singleton worker
+- **Application Lifetime Management**: Injects `IHostApplicationLifetime` to stop the application after seeding completes
+- **Realistic Data**: Includes random cities from around the world and weather summaries
+- **Proper Entity Model**: Uses `Guid` for the ID and includes location information
+- **Self-Terminating**: The worker stops the application after completing its task, perfect for one-time operations
+- **Idempotent**: Checks if data already exists to avoid duplicate seeding
+
+**Why this pattern works well:**
+- The seeder runs once and exits, preventing resource waste
+- In the Aspire Dashboard, you'll see the seeder transition from "Not Started" → "Running" → "Exited"
+- Perfect for initialization tasks that should complete and not run continuously
+
+Now add the worker to the AppHost in `WeatherApp.AppHost/AppHost.cs`:
+
+```csharp
+var builder = DistributedApplication.CreateBuilder(args);
+
+#pragma warning disable ASPIRECOSMOSDB001
+
+var cosmos = builder.AddAzureCosmosDB("cosmos").RunAsPreviewEmulator(
+    emulator =>
+    {
+        emulator.WithDataExplorer();            
+    });
+
+#pragma warning restore ASPIRECOSMOSDB001
+
+var database = cosmos.AddCosmosDatabase("WeatherDB");
+var container = database.AddContainer("WeatherData", "/id");
+
+// Pass Cosmos DB container connection to the API
+var api = builder.AddProject<Projects.WeatherApp_Api>("weatherapi")
+    .WithReference(container);
+
+// Add the data seeding worker service with explicit start
+var seeder = builder.AddProject<Projects.WeatherApp_Seed>("weatherseeder")
+    .WithReference(container)
+    .WithExplicitStart();
+
+// Add the React frontend using Vite integration
+var frontend = builder.AddViteApp("frontend", "../WeatherApp.Web")
+    .WithNpmPackageInstallation()
+    .WithReference(api)
+    .WithEnvironment("BROWSER", "false")
+    .WithExternalHttpEndpoints();
+
+builder.Build().Run();
+```
+
+Don't forget to add the project reference from AppHost to the Seed project:
+
+```bash
+dotnet add src/WeatherApp.AppHost/WeatherApp.AppHost.csproj reference src/WeatherApp.Seed/WeatherApp.Seed.csproj
+```
+
+The `WithExplicitStart()` configuration means:
+- The seeder won't start automatically when you run `aspire run`
+- It will appear in the Aspire Dashboard with a "Not Started" status
+- You can manually start it from the dashboard by clicking the "Start" button
+- This is perfect for seeding operations that you want to run on-demand rather than every time the application starts
 
 ## Why Dev Containers Matter 🐳
 
@@ -716,31 +1026,37 @@ The same container configuration that works locally can be used in:
 
 ## Aspire Roadmap & Future 🔮
 
-.NET Aspire is under active development with an exciting roadmap ahead. The team is working on:
+.NET Aspire is under active development with an exciting roadmap ahead. The team maintains transparent communication about their plans through official GitHub discussions:
 
-### Cloud Deployment
-Currently, Aspire excels at local development, but the team is building first-class deployment support for:
-- **Azure Container Apps** - Native deployment target (in preview)
-- **Kubernetes** - Generate K8s manifests from your AppHost
-- **Azure Developer CLI (azd)** - One-command deployment to Azure
+📍 **Official Roadmap**: [.NET Aspire 9 and Beyond Roadmap](https://github.com/dotnet/aspire/discussions/10644)  
+📍 **Latest Updates**: [.NET Aspire December 2024 Update](https://github.com/dotnet/aspire/discussions/11720)
 
-Key GitHub Issues to Follow:
-- [Azure Container Apps Deployment](https://github.com/dotnet/aspire/issues/1234) (TODO: Add real issue numbers)
-- [Kubernetes Manifest Generation](https://github.com/dotnet/aspire/issues/5678)
-- [Production Deployment Guidance](https://github.com/dotnet/aspire/issues/9012)
+### Key Highlights from the Roadmap
 
-### Enhanced Integrations
-The Aspire team is expanding the built-in components:
-- More Azure services (Service Bus, Event Hubs, Redis, etc.)
-- AWS and GCP resource support
-- Additional databases (PostgreSQL, MongoDB, etc.)
-- Message brokers (RabbitMQ, Kafka)
+**🚀 Production Deployment Focus**
+- **Azure Container Apps** - First-class deployment support with simplified configuration
+- **Kubernetes Integration** - Generate K8s manifests directly from AppHost definitions
+- **Azure Developer CLI (azd)** - One-command deployment from local development to Azure
+- **Terraform/Bicep Integration** - Infrastructure as Code generation from Aspire definitions
 
-### Improved Developer Experience
-- Better Visual Studio and VS Code tooling
-- Enhanced debugging across distributed services
-- Performance improvements for faster startup
-- Template improvements and scaffolding
+**🔧 Enhanced Developer Experience**
+- **Visual Studio Integration** - Native Aspire project templates and debugging experience
+- **Performance Improvements** - Faster startup times and reduced resource usage
+- **Enhanced Debugging** - Better cross-service debugging and diagnostics
+- **Template Ecosystem** - More starter templates for common scenarios
+
+**🌐 Expanded Integrations**
+- **Cloud Provider Support** - AWS and GCP resource integrations beyond Azure
+- **Database Ecosystem** - PostgreSQL, MongoDB, SQL Server, and more
+- **Message Brokers** - RabbitMQ, Apache Kafka, Azure Service Bus
+- **Observability Tools** - Grafana, Prometheus, and other monitoring solutions
+
+**🎯 Community & Ecosystem**
+- **Community Contributions** - Growing ecosystem of community-built integrations
+- **Enterprise Features** - Enhanced security, compliance, and governance features
+- **Documentation & Learning** - Expanded tutorials, samples, and best practices
+
+The team is actively shipping features across these areas, with regular preview releases and community feedback driving priorities.
 
 ## Resources & Community 🌍
 
@@ -776,16 +1092,29 @@ builder.Build().Run();
 Five lines of code to orchestrate a full-stack application with observability built-in.
 
 ### What We Built Today
-✅ Set up a complete dev container environment with zero manual configuration
-✅ Installed Aspire templates and CLI for enhanced developer experience
-✅ Created an Aspire solution with AppHost and ServiceDefaults
-✅ Added a .NET Web API with automatic service discovery
-✅ Integrated a React TypeScript frontend
-✅ Connected the frontend to the API using Aspire's service discovery
-✅ Added Azure Cosmos DB with the emulator for local development
-✅ Seeded data and built a complete weather application
-✅ Explored the Aspire Dashboard for observability
-✅ Learned about `aspire run`, `aspire add`, and other CLI commands
+
+**🚀 Development Environment**
+- ✅ Complete dev container setup with zero manual configuration
+- ✅ Aspire CLI and templates for enhanced developer experience
+- ✅ Docker-in-Docker for seamless container orchestration
+
+**🏗️ Application Architecture**
+- ✅ Aspire solution with AppHost orchestration and ServiceDefaults
+- ✅ .NET 9 Web API with minimal endpoints and Entity Framework Core
+- ✅ React TypeScript frontend with Vite integration
+- ✅ Azure Cosmos DB with local emulator for development
+
+**🔗 Service Integration**
+- ✅ Automatic service discovery between frontend and API
+- ✅ Vite proxy configuration for seamless API communication
+- ✅ Entity Framework Cosmos DB integration with proper partition keys
+- ✅ Background worker service for data seeding with explicit start control
+
+**📊 Observability & Developer Experience**
+- ✅ Aspire Dashboard with real-time service monitoring
+- ✅ Distributed tracing and structured logging
+- ✅ Health checks and telemetry across all services
+- ✅ One-command startup with `aspire run`
 
 ### Next Steps
 In our next post, we'll dive into **TypeSpec for Contract-First API Development**, where we'll define API contracts that both our backend and frontend can consume with full type safety.

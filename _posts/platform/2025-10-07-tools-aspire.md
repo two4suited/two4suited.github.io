@@ -1,22 +1,5 @@
 ---
-title: "Building a Modern Development Platform:2. Name your repository `blog-platform-aspire`
-3. Make it public or private (your choice)
-4. Click **"Create repository"**
-
-### Step 2: Clone and Open in Dev Container
-
-Clone your n### Step 7: Add Aspire Service Defaults
-
-Add a project reference to the ServiceDefaults project in the API project:
-
-```bash
-cd src/WeatherApp.Api
-dotnet add reference ../WeatherApp.ServiceDefaults/WeatherApp.ServiceDefaults.csproj
-```itory locally:
-
-```bash
-git clone https://github.com/two4suited/blog-platform-aspire
-cd blog-platform-aspiree for Local Development 💻"
+title: "Building a Modern Development Platform: .NET Aspire for Local Development"
 date: 2025-10-07T06:00:00-07:00
 draft: false
 categories: ["platform","aspire","dotnet","local-development","orchestration"]

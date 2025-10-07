@@ -323,7 +323,7 @@ The dashboard now shows all your services running and their interconnections!
 
 ### Step 12: Configure Vite Proxy
 
-First, configure Vite to proxy API calls to the backend. Update `WeatherApp.Web/vite.config.ts`:
+Configure Vite to proxy API calls to the backend. Update `WeatherApp.Web/vite.config.ts`:
 
 ```typescript
 import { defineConfig } from 'vite'
@@ -1088,16 +1088,33 @@ Five lines of code to orchestrate a full-stack application with observability bu
 - ✅ Azure Cosmos DB with local emulator for development
 
 **🔗 Service Integration**
-- ✅ Automatic service discovery between frontend and API
 - ✅ Vite proxy configuration for seamless API communication
 - ✅ Entity Framework Cosmos DB integration with proper partition keys
 - ✅ Background worker service for data seeding with explicit start control
+- ✅ Cross-service communication through environment variable injection
 
 **📊 Observability & Developer Experience**
 - ✅ Aspire Dashboard with real-time service monitoring
 - ✅ Distributed tracing and structured logging
 - ✅ Health checks and telemetry across all services
 - ✅ One-command startup with `aspire run`
+
+### Current Limitations & Future Enhancements 🔧
+
+While our application demonstrates the core power of Aspire orchestration, there are some areas where we can further integrate with Aspire's capabilities:
+
+**Frontend Integration Opportunities**
+While our React application works perfectly with Aspire's orchestration, there are additional integration opportunities we haven't explored:
+
+- **Enhanced Observability**: The frontend could send additional telemetry data to provide deeper insights into user interactions and client-side performance
+- **Health Check Integration**: The React app could participate more fully in Aspire's health monitoring system
+- **Advanced Configuration**: More sophisticated configuration management for client-side settings
+
+**What We Have vs. What's Possible**
+Our current setup demonstrates the core value of Aspire—seamless service orchestration and communication. The frontend communicates with the backend through Aspire's environment variable injection, and everything works smoothly in development.
+
+**Coming Soon**
+In a future post, we'll explore advanced frontend integration patterns and how to create an even more comprehensive observability story across the entire application stack.
 
 ### Next Steps
 In our next post, we'll dive into **TypeSpec for Contract-First API Development**, where we'll define API contracts that both our backend and frontend can consume with full type safety.

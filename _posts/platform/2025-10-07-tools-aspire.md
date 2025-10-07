@@ -1,16 +1,16 @@
 ---
-title: "Building a Modern Development Platform: .NET Aspire for Local Development"
+title: "Building a Modern Development Platform: Aspire for Local Development"
 date: 2025-10-06T06:00:00-07:00
 draft: false
 categories: ["platform","aspire","dotnet","local-development","orchestration"]
-description: "Setting up .NET Aspire for orchestrating local development environments with service discovery, telemetry, and seamless multi-service debugging"
+description: "Setting up Aspire for orchestrating local development environments with service discovery, telemetry, and seamless multi-service debugging"
 ---
 
 [Series Posts](https://brianpsheridan.com/categories.html#platform)
 
 ## Introduction 🚀
 
-In our [tool selection post](https://brianpsheridan.com/platform/aspire/typespec/kiota/dotnet/terraform/modernization/cloud/2025/10/04/tool-selection.html), we introduced .NET Aspire as our solution for orchestrating local development environments. Today, we're going to dive deep into Aspire by building a real-world application from scratch.
+In our [tool selection post](https://brianpsheridan.com/platform/aspire/typespec/kiota/dotnet/terraform/modernization/cloud/2025/10/04/tool-selection.html), we introduced Aspire as our solution for orchestrating local development environments. Today, we're going to dive deep into Aspire by building a real-world application from scratch.
 
 By the end of this post, you'll have a complete understanding of how Aspire simplifies local development for distributed applications. We'll build a full-stack application with:
 - A .NET Web API backed by Azure Cosmos DB
@@ -18,7 +18,7 @@ By the end of this post, you'll have a complete understanding of how Aspire simp
 - Aspire orchestration for running everything locally
 - Built-in observability with the Aspire Dashboard
 
-**What is .NET Aspire?** Aspire is an opinionated, cloud-ready stack for building observable, production-ready distributed applications. It handles service orchestration, service discovery, and telemetry out of the box, making local development of microservices feel as simple as running a monolith.
+**What is Aspire?** Aspire is an opinionated, cloud-ready stack for building observable, production-ready distributed applications. It handles service orchestration, service discovery, and telemetry out of the box, making local development of microservices feel as simple as running a monolith.
 
 **The Problem Aspire Solves**: Before Aspire, running a distributed application locally meant:
 - Starting databases manually (Docker Compose, local SQL Server, etc.)
@@ -1009,10 +1009,10 @@ The same container configuration that works locally can be used in:
 
 ## Aspire Roadmap & Future 🔮
 
-.NET Aspire is under active development with an exciting roadmap ahead. The team maintains transparent communication about their plans through official GitHub discussions:
+Aspire is under active development with an exciting roadmap ahead. The team maintains transparent communication about their plans through official GitHub discussions:
 
-📍 **Official Roadmap**: [.NET Aspire 9 and Beyond Roadmap](https://github.com/dotnet/aspire/discussions/10644)  
-📍 **Latest Updates**: [.NET Aspire December 2024 Update](https://github.com/dotnet/aspire/discussions/11720)
+📍 **Official Roadmap**: [Aspire 9 and Beyond Roadmap](https://github.com/dotnet/aspire/discussions/10644)  
+📍 **Latest Updates**: [Aspire December 2024 Update](https://github.com/dotnet/aspire/discussions/11720)
 
 ### Key Highlights from the Roadmap
 
@@ -1044,7 +1044,7 @@ The team is actively shipping features across these areas, with regular preview 
 ## Resources & Community 🌍
 
 ### Official Documentation
-- [.NET Aspire Documentation](https://learn.microsoft.com/dotnet/aspire/) - Comprehensive guides and API reference
+- [Aspire Documentation](https://learn.microsoft.com/dotnet/aspire/) - Comprehensive guides and API reference
 - [Aspire CLI Overview](https://learn.microsoft.com/en-us/dotnet/aspire/cli/overview) - Complete CLI command reference
 - [Aspire Templates](https://learn.microsoft.com/en-us/dotnet/aspire/fundamentals/aspire-sdk-templates) - All available project templates
 - [Aspire Samples](https://github.com/dotnet/aspire-samples) - Real-world example applications
@@ -1052,7 +1052,7 @@ The team is actively shipping features across these areas, with regular preview 
 ### Community & Learning
 - [Aspire Discord Server](https://aka.ms/aspire/discord) - Active community and direct access to the team
 - [Aspireify.com](https://aspireify.com/) - Community-driven Aspire resources and tutorials
-- [.NET Aspire Fridays](https://www.youtube.com/playlist?list=PLdo4fOcmZ0oUJCA3qYKXSEvJ_HfEJNbdL) - Weekly video series from the Aspire team
+- [Aspire Fridays](https://www.youtube.com/playlist?list=PLdo4fOcmZ0oUJCA3qYKXSEvJ_HfEJNbdL) - Weekly video series from the Aspire team
 
 ### GitHub & Contributing
 - [Aspire GitHub Repository](https://github.com/dotnet/aspire) - Source code, issues, and discussions
@@ -1060,7 +1060,7 @@ The team is actively shipping features across these areas, with regular preview 
 
 ## Conclusion 🎉
 
-.NET Aspire transforms local development for distributed applications. What used to require Docker Compose files, environment variables, and manual service management is now:
+Aspire transforms local development for distributed applications. What used to require Docker Compose files, environment variables, and manual service management is now:
 
 ```csharp
 var builder = DistributedApplication.CreateBuilder(args);

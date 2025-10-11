@@ -196,34 +196,56 @@ model WeatherForecast {
 
 TypeSpec integrates seamlessly with:
 - **Microsoft Kiota** - Generate strongly-typed HTTP clients
-- **Azure API Management** - Import TypeSpec specs directly
+- **Azure API Management** - Import generated OpenAPI specifications
 - **OpenAPI tooling** - Works with existing OpenAPI ecosystem
 - **CI/CD pipelines** - Automate spec validation and code generation
 - **API gateways** - Deploy contracts to Kong, Envoy, etc.
 
 ## The Alternative: Manual API Management 😰
 
-Without TypeSpec, API development looks like:
+Without TypeSpec, API development typically follows one of two problematic approaches:
 
-**Documentation Drift**
-- OpenAPI specs written by hand, quickly become outdated
-- Frontend and backend models diverge
-- Integration bugs discovered late in development
+### Approach 1: Hand-Written OpenAPI Specifications
+**The Process:**
+- Write OpenAPI YAML/JSON files manually
+- Struggle with verbose, repetitive syntax
+- Manually keep specifications in sync with code
 
-**Coordination Overhead**
-- Constant communication between teams about API changes
-- Manual client SDK updates
+**The Problems:**
+- **Documentation Drift** - Hand-written specs quickly become outdated
+- **Error-Prone** - Typos in massive YAML files break integrations
+- **Maintenance Nightmare** - Complex specifications become unwieldy
+- **No Validation** - Missing validation rules and inconsistent patterns
+
+### Approach 2: Code-First with Manual Export/Import
+**The Process:**
+- Write API implementation first (ASP.NET Core, FastAPI, etc.)
+- Export OpenAPI spec from running application
+- Manually import spec into API management tools
+- Hope frontend teams can work with what's generated
+
+**The Problems:**
+- **Implementation Lock-in** - API design driven by code constraints
+- **Export/Import Friction** - Manual steps that teams forget or skip
+- **Generated Specs** - Often incomplete or poorly documented
+- **Coordination Overhead** - Constant communication between teams about API changes
+- **Late Discovery** - Integration issues found after implementation
+
+### Common Pain Points Across Both Approaches
+**Team Coordination**
+- Frontend and backend models diverge over time
+- Manual client SDK updates required for every change
 - Time wasted on preventable integration issues
 
-**Error-Prone Process**
-- Typos in hand-written OpenAPI specs
-- Missing validation rules
+**Quality Issues**
+- Missing validation rules in specifications
 - Inconsistent error handling across endpoints
+- Poor documentation that doesn't match reality
 
 **Scaling Challenges**
-- Multiple APIs with different standards
-- No reusable patterns across teams
-- Difficult to maintain consistency
+- Multiple APIs with different standards and patterns
+- No reusable components across teams
+- Difficult to maintain consistency as organization grows
 
 ## TypeSpec in Action: A Quick Example 🎯
 

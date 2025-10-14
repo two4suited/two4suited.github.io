@@ -1,6 +1,6 @@
 ---
 title: "Building a Modern Development Platform: TypeSpec for Contract-First API Development 📋"
-date: 2025-10-15T06:00:00-07:00
+date: 2025-10-14T06:00:00-07:00
 draft: false
 categories: ["platform","typespec","api","contract-first","openapi"]
 description: "Deep dive into using TypeSpec for contract-first API development - defining clean API contracts that generate OpenAPI specs and enable parallel team development"
@@ -73,6 +73,8 @@ components:
 - **Extensible**: Plugin system for custom behaviors
 - **Multi-Target**: Generate OpenAPI, JSON Schema, client SDKs, and more
 - **Tooling**: Rich VS Code extension with IntelliSense and validation
+
+## Why Would You Use TypeSpec? 💡
 
 ## Why Would You Use TypeSpec? 💡
 
@@ -335,6 +337,21 @@ npm install -g @typespec/compiler
 tsp --version
 ```
 
+**What this installs:**
+- **TypeSpec Compiler** (`tsp`) - Core compiler for processing `.tsp` files
+- **Standard Library** - Built-in types like `string`, `int32`, `utcDateTime`
+- **CLI Tools** - Commands for project initialization, compilation, and scaffolding
+
+**Verify Everything Works:**
+```bash
+# Check available commands
+tsp --help
+
+# See installed version and location
+tsp --version
+which tsp
+```
+
 ### Install VS Code Extension
 
 The TypeSpec VS Code extension provides syntax highlighting, IntelliSense, and real-time validation:
@@ -354,8 +371,8 @@ Navigate to your weather app repository and create a TypeSpec project:
 
 ```bash
 # From your project root (where you have src/ folder)
-mkdir api-contracts
-cd api-contracts
+mkdir WeatherApp.Typespec
+cd WeatherApp.Typespec
 
 # Initialize a new TypeSpec project
 tsp init
@@ -368,7 +385,7 @@ The TypeSpec CLI will guide you through setup:
 
 This creates:
 ```
-api-contracts/
+WeatherApp.Typespec/
 ├── package.json
 ├── tspconfig.yaml
 ├── main.tsp
@@ -380,103 +397,60 @@ api-contracts/
 Update `tspconfig.yaml` to configure our emitters (code generators):
 
 ```yaml
-extends: "@typespec/http/all"
-parameters:
-  "service-name": "WeatherAPI"
-emitters:
-  "@typespec/openapi3":
-    output-dir: "../generated/openapi"
-  "@typespec/json-schema": 
-    output-dir: "../generated/schemas"
+emit:
+  - "@typespec/openapi3"
 options:
   "@typespec/openapi3":
-    file-type: "yaml"
+    emitter-output-dir: "{output-dir}/../../generated/openapi"
 ```
+
+This configuration:
+- **`emit`** - Specifies which emitters to run (OpenAPI 3 in this case)
+- **`emitter-output-dir`** - Uses relative path to output to `src/generated/openapi` 
+- **`{output-dir}`** - TypeSpec's placeholder for the default output directory (tsp-output)
+- The `../../` navigates up from `WeatherApp.Typespec/tsp-output` to the project root, then into `src/generated/openapi`
 
 Install the required emitters:
 
 ```bash
-npm install @typespec/openapi3 @typespec/json-schema
+npm install @typespec/openapi3
 ```
 
 ## Defining Our Weather API Contract 🌤️
 
-Replace the content of `main.tsp` with our weather API definition:
+Replace the content of `main.tsp` with our complete weather API definition:
 
 ```typespec
 import "@typespec/http";
-import "@typespec/rest";
-import "@typespec/openapi3";
 
-using TypeSpec.Http;
-using TypeSpec.Rest;
+using Http;
 
 @service({
   title: "Weather API",
-  description: "A service for managing weather forecasts",
-  version: "1.0.0",
 })
-@server("https://localhost:7097", "Development server")
+@server("http://localhost:5008", "Development server")
 namespace WeatherAPI;
 
 @doc("Represents a weather forecast for a specific location and date")
 model WeatherForecast {
-  @doc("Unique identifier for the forecast")
-  @format("uuid")
+  @doc("Unique identifier for the weather forecast")
   id: string;
-
-  @doc("Date of the forecast")  
-  @format("date")
+  
+  @doc("Date of the weather forecast")
   date: plainDate;
-
+  
   @doc("Temperature in Celsius")
-  @minimum(-50)
-  @maximum(60)
   temperatureC: int32;
-
+  
   @doc("Temperature in Fahrenheit (calculated)")
   temperatureF: int32;
-
+  
   @doc("Weather summary description")
-  @minLength(1)
-  @maxLength(100)
-  summary: string;
-
-  @doc("Location for this forecast")
-  @minLength(1)
-  @maxLength(50)
+  summary?: string;
+  
+  @doc("Geographic location of the forecast")
   location: string;
 }
-
-@doc("Request model for creating a new weather forecast")
-model CreateWeatherRequest {
-  @doc("Date of the forecast")
-  @format("date")  
-  date: plainDate;
-
-  @doc("Temperature in Celsius")
-  @minimum(-50)
-  @maximum(60)
-  temperatureC: int32;
-
-  @doc("Weather summary description")
-  @minLength(1)
-  @maxLength(100)
-  summary: string;
-
-  @doc("Location for this forecast")
-  @minLength(1)
-  @maxLength(50)
-  location: string;
-}
-```
-
-## Adding Custom Error Messages 🚨
-
-Let's add comprehensive error handling to our TypeSpec definition:
-
-```typespec
-// Add this to main.tsp after the models
 
 @doc("Standard error response")
 @error
@@ -497,28 +471,22 @@ model ErrorResponse {
   requestId?: string;
 }
 
-@doc("Validation error details")
-model ValidationError extends ErrorResponse {
-  @doc("Field-specific validation errors")
-  fieldErrors?: Record<string[]>;
-}
-
-@doc("Not found error")
-model NotFoundError extends ErrorResponse {
-  code: "NOT_FOUND";
-}
-
 @doc("Bad request error") 
 model BadRequestError extends ErrorResponse {
   code: "BAD_REQUEST";
 }
 
-// Weather API operations with comprehensive error handling
+@doc("List of weather forecasts")
+model WeatherForecastList {
+  @doc("Array of weather forecast items")
+  items: WeatherForecast[];
+}
+
+@route("/weatherforecast")
 @tag("Weather")
-@route("/weather")
-namespace Weather {
-  @doc("Get all weather forecasts")
-  @get
+interface WeatherForecasts {
+  /** Get all weather forecasts */
+  @get 
   op listForecasts(): {
     @statusCode statusCode: 200;
     @body forecasts: WeatherForecast[];
@@ -527,72 +495,60 @@ namespace Weather {
     @body error: ErrorResponse;
   };
 
-  @doc("Get a specific weather forecast by ID")
-  @get
-  op getForecast(@path id: string): {
-    @statusCode statusCode: 200;
-    @body forecast: WeatherForecast;
-  } | {
-    @statusCode statusCode: 404;
-    @body error: NotFoundError;
+  /** Add a new weather forecast */
+  @post
+  op addForecast(
+    @body forecast: WeatherForecast
+  ): {
+    @statusCode statusCode: 201;
+    @body createdForecast: WeatherForecast;
   } | {
     @statusCode statusCode: 400;
     @body error: BadRequestError;
-  };
-
-  @doc("Create a new weather forecast")
-  @post
-  op createForecast(@body request: CreateWeatherRequest): {
-    @statusCode statusCode: 201;
-    @body forecast: WeatherForecast;
-  } | {
-    @statusCode statusCode: 400;
-    @body error: ValidationError;
   } | {
     @statusCode statusCode: 500;
     @body error: ErrorResponse;
   };
-
-  @doc("Update an existing weather forecast")
-  @put
-  op updateForecast(@path id: string, @body request: CreateWeatherRequest): {
-    @statusCode statusCode: 200;
-    @body forecast: WeatherForecast;
-  } | {
-    @statusCode statusCode: 404;
-    @body error: NotFoundError;
-  } | {
-    @statusCode statusCode: 400;
-    @body error: ValidationError;
-  };
-
-  @doc("Delete a weather forecast")
-  @delete
-  op deleteForecast(@path id: string): {
-    @statusCode statusCode: 204;
-  } | {
-    @statusCode statusCode: 404;
-    @body error: NotFoundError;
-  };
 }
 ```
+
+**Key Features of This TypeSpec Definition:**
+
+**Server Configuration**
+- `@server("http://localhost:5008", "Development server")` - Defines the base URL for the API
+- This will be included in the generated OpenAPI specification
+- Makes it easy to test the API with tools like Swagger UI
+
+**Clean Error Hierarchy**
+- `ErrorResponse` - Base error model with common fields (code, message, details, timestamp, requestId)
+- `BadRequestError` - Extends base with specific error code constant
+- Easily extensible for additional error types (NotFoundError, ValidationError, etc.)
+
+**Explicit Response Structure**
+- Uses `@statusCode` and `@body` decorators for clear response definitions
+- Union types (`|`) to define success and error responses
+- Makes the API contract explicit and unambiguous
+
+**Interface-Based Operations**
+- `interface WeatherForecasts` groups related operations
+- Cleaner than namespace-based operations
+- Better IntelliSense and tooling support in VS Code
 
 ## Creating OpenAPI File with Emitter 📄
 
 Now let's generate the OpenAPI specification from our TypeSpec definition:
 
 ```bash
-# From the api-contracts directory
+# From the WeatherApp.Typespec directory
 tsp compile .
 ```
 
 This generates:
 ```
-generated/
-├── openapi/
-│   └── openapi.yaml
-└── schemas/
-    └── *.json
+src/
+└── generated/
+    └── openapi/
+        └── openapi.yaml
 ```
 
 The generated `openapi.yaml` will contain a complete OpenAPI 3.0 specification with:
@@ -608,7 +564,7 @@ Let's check what we generated:
 
 ```bash
 # View the generated OpenAPI spec
-cat ../generated/openapi/openapi.yaml
+cat src/generated/openapi/openapi.yaml
 ```
 
 You'll see a fully-formed OpenAPI specification that's much cleaner and more comprehensive than what we could write by hand!
@@ -616,24 +572,6 @@ You'll see a fully-formed OpenAPI specification that's much cleaner and more com
 ## Adding Swagger to AppHost 📊
 
 Let's integrate Swagger UI into our Aspire application so we can view and test our API specification.
-
-### Step 1: Add Swagger Support to AppHost
-
-Update your `WeatherApp.AppHost/WeatherApp.AppHost.csproj` to include the OpenAPI file as content:
-
-```xml
-<Project Sdk="Microsoft.NET.Sdk">
-  <!-- existing content -->
-  
-  <ItemGroup>
-    <Content Include="../generated/openapi/openapi.yaml">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
-</Project>
-```
-
-### Step 2: Add Swagger UI Container to AppHost
 
 Update `WeatherApp.AppHost/AppHost.cs` to include a Swagger UI container:
 
@@ -651,35 +589,45 @@ var cosmos = builder.AddAzureCosmosDB("cosmos").RunAsPreviewEmulator(
 #pragma warning restore ASPIRECOSMOSDB001
 
 var database = cosmos.AddCosmosDatabase("WeatherDB");
-var container = database.AddContainer("WeatherData", "/id");
+var container = database.AddContainer("WeatherData", "/location");
 
-// Add Swagger UI for API documentation
-var swagger = builder.AddContainer("swagger-ui", "swaggerapi/swagger-ui")
-    .WithEnvironment("SWAGGER_JSON_URL", "http://localhost:8080/openapi.yaml")
-    .WithBindMount("../generated/openapi", "/usr/share/nginx/html")
-    .WithHttpEndpoint(port: 8080, targetPort: 8080, name: "swagger");
-
-// Pass Cosmos DB container connection to the API
 var api = builder.AddProject<Projects.WeatherApp_Api>("weatherapi")
     .WithReference(container);
 
-// Add explicit dependency so Swagger can find the OpenAPI file
-swagger.WithReference(api);
+var seeder = builder.AddProject<Projects.WeatherApp_Seed>("weatherseeder")
+    .WithReference(container)
+    .WithExplicitStart();
 
-// Add the React frontend using Vite integration
+var swagger = builder.AddContainer("swagger-ui", "swaggerapi/swagger-ui")
+    .WithBindMount("../generated/openapi/openapi.yaml", "/usr/share/nginx/html/openapi.yaml")
+    .WithEnvironment("SWAGGER_JSON_URL", "/openapi.yaml")
+    .WithHttpEndpoint(targetPort: 8080, name: "swagger");
+
 var frontend = builder.AddViteApp("frontend", "../WeatherApp.Web")
     .WithNpmPackageInstallation()
     .WithReference(api)
     .WithEnvironment("BROWSER", "false")
     .WithExternalHttpEndpoints();
 
-// Add the data seeding worker service with explicit start
-var seeder = builder.AddProject<Projects.WeatherApp_Seed>("weatherseeder")
-    .WithReference(container)
-    .WithExplicitStart();
-
 builder.Build().Run();
 ```
+
+**Key Configuration Details:**
+
+**Swagger UI Container**
+- Uses the official `swaggerapi/swagger-ui` Docker image
+- **`WithBindMount`** - Mounts the generated OpenAPI file directly to the Swagger UI container
+- **`WithEnvironment("SWAGGER_JSON_URL", "/openapi.yaml")`** - Tells Swagger UI where to find the spec
+- **`WithHttpEndpoint(targetPort: 8080)`** - Exposes Swagger UI on port 8080
+
+**Cosmos DB Partition Key**
+- Updated to use `/location` as the partition key (matching our WeatherForecast model)
+- Previously was `/id` which wasn't optimal for querying by location
+
+**Service Ordering**
+- API and seeder are defined before Swagger
+- Ensures the OpenAPI file is generated before Swagger tries to load it
+- Swagger appears in the Aspire dashboard with the other services
 
 ## Creating Controllers with Emitter 🏗️
 
@@ -688,7 +636,7 @@ Now let's create a TypeSpec emitter that generates .NET controllers from our spe
 ### Step 1: Install ASP.NET Core Emitter
 
 ```bash
-# From api-contracts directory
+# From WeatherApp.Typespec directory
 npm install @typespec/http-server-csharp
 ```
 
@@ -697,21 +645,22 @@ npm install @typespec/http-server-csharp
 Update `tspconfig.yaml` to include the C# emitter:
 
 ```yaml
-extends: "@typespec/http/all"
-parameters:
-  "service-name": "WeatherAPI"
-emitters:
-  "@typespec/openapi3":
-    output-dir: "../generated/openapi"
-  "@typespec/json-schema": 
-    output-dir: "../generated/schemas"
-  "@typespec/http-server-csharp":
-    output-dir: "../generated/controllers"
-    namespace: "WeatherApp.Generated"
+emit:
+  - "@typespec/openapi3"
+  - "@typespec/http-server-csharp"
 options:
   "@typespec/openapi3":
-    file-type: "yaml"
+    emitter-output-dir: "{output-dir}/../../generated/openapi"
+  "@typespec/http-server-csharp":
+    emitter-output-dir: "{output-dir}/../../WeatherApp.Api"
+    emit-mocks: none
 ```
+
+**Key Configuration Options:**
+
+- **`emitter-output-dir: "{output-dir}/../../WeatherApp.Api"`** - Generates C# code directly into the API project
+- **`emit-mocks: none`** - Disables mock generation, we only want the models and interfaces
+- This approach integrates generated code directly into your existing project structure
 
 ### Step 3: Generate Controllers
 
@@ -720,77 +669,253 @@ options:
 tsp compile .
 ```
 
-This creates:
+This creates files directly in your API project:
 ```
-generated/
-├── openapi/
-├── schemas/
-└── controllers/
-    ├── Models/
-    │   ├── WeatherForecast.cs
-    │   ├── CreateWeatherRequest.cs
-    │   └── ErrorResponse.cs
-    └── Controllers/
-        └── WeatherController.cs
-```
-
-### Step 4: Integration with Existing API
-
-Add the generated models to your existing API project:
-
-```bash
-# From your API project
-dotnet add package Microsoft.AspNetCore.Mvc.Abstractions
-
-# Copy generated files or add them as linked files
+src/
+├── WeatherApp.Api/
+│   ├── generated/           # TypeSpec-generated code
+│   │   ├── Models/
+│   │   │   ├── WeatherForecast.cs
+│   │   │   ├── ErrorResponse.cs
+│   │   │   └── BadRequestError.cs
+│   │   └── ... (other generated files)
+│   └── ... (other API files)
+└── generated/
+    └── openapi/
+        └── openapi.yaml
 ```
 
-Update your `WeatherApp.Api/Program.cs` to reference generated models:
+### Step 4: Clean Up Data Project
+
+Now that we're using TypeSpec-generated code, we can remove some files from the Data project that are no longer needed:
+
+**Remove these files from `WeatherApp.Data/`:**
+- `ServiceExtensions.cs` - Service registration is now handled by generated code
+- `WeatherService.cs` / `IWeatherService` - Business logic will use generated models directly
+
+The generated C# server code from TypeSpec includes:
+- Models that match your TypeSpec definitions
+- Interfaces for operations
+- Proper serialization attributes
+
+**Keep in `WeatherApp.Data/`:**
+- `WeatherContext.cs` - Entity Framework DbContext for database access
+- `WeatherForecast.cs` - Can be replaced with the generated model or kept for EF-specific configurations
+
+### Step 5: Update API to Use Generated Models
+
+Update your `WeatherApp.Api/Program.cs` to use the generated models:
 
 ```csharp
+using WeatherApi;
 using WeatherApp.Data;
-using WeatherApp.Generated.Models; // Generated models
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Add services to the container.
+// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+builder.Services.AddOpenApi();
 builder.AddServiceDefaults();
+
+// Add Entity Framework with Cosmos DB - connection is injected automatically by Aspire
 builder.AddCosmosDbContext<WeatherContext>("WeatherData");
-builder.Services.AddWeatherServices();
 
-// Add Swagger with our generated OpenAPI spec
-builder.Services.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc("v1", new OpenApiInfo 
-    { 
-        Title = "Weather API", 
-        Version = "v1",
-        Description = "Generated from TypeSpec"
-    });
-});
-
+// Register weather services from the Data project
+builder.Services.AddScoped<IWeatherForecasts, WeatherService>();
 builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
 
 var app = builder.Build();
 
-app.MapDefaultEndpoints();
-
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
-    {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Weather API V1");
-        c.RoutePrefix = "swagger";
-    });
-}
-
 app.UseHttpsRedirection();
-app.UseAuthorization();
 app.MapControllers();
-
 app.Run();
 ```
+
+**Key Points:**
+- **`IWeatherForecasts`** - Interface generated from TypeSpec operations
+- **`WeatherService`** - Your implementation of the generated interface
+- **`AddOpenApi()`** - Uses built-in .NET OpenAPI support instead of Swashbuckle
+- **Simplified** - No manual Swagger configuration, leveraging Aspire and generated code
+
+### Step 6: Implement the Generated Interface
+
+Create `WeatherApp.Api/WeatherService.cs` to implement the TypeSpec-generated interface:
+
+```csharp
+using System.Text.Json.Nodes;
+using WeatherApi;
+using WeatherApp.Data;
+using Microsoft.EntityFrameworkCore;
+
+public class WeatherService : IWeatherForecasts
+{
+    private readonly WeatherContext _context;
+
+    public WeatherService(WeatherContext context)
+    {
+        _context = context;
+    }
+
+    public async Task<JsonNode> AddForecastAsync(WeatherApi.WeatherForecast body)
+    {
+        var entity = new WeatherApp.Data.WeatherForecast(
+            Guid.NewGuid(),
+            DateOnly.FromDateTime(body.Date),
+            body.TemperatureC,
+            body.Summary,
+            body.Location
+        );
+        _context.WeatherForecasts.Add(entity);
+        await _context.SaveChangesAsync();
+        return System.Text.Json.JsonSerializer.SerializeToNode(entity) ?? new JsonObject();
+    }
+
+    public async Task<JsonNode> ListForecastsAsync()
+    {
+        var forecasts = await _context.WeatherForecasts.ToListAsync();
+        var json = System.Text.Json.JsonSerializer.Serialize(forecasts);
+        var node = JsonNode.Parse(json);
+        return node ?? new JsonArray();
+    }
+}
+```
+
+**Implementation Details:**
+- **`IWeatherForecasts`** - Generated interface from TypeSpec with `ListForecastsAsync()` and `AddForecastAsync()` methods
+- **`WeatherApi.WeatherForecast`** - Generated model from TypeSpec used for API contract
+- **`WeatherApp.Data.WeatherForecast`** - Entity Framework model for database persistence
+- **Type Mapping** - Converts between API models and database entities
+- **`JsonNode` Returns** - Generated interface uses `JsonNode` for flexible response handling
+
+**Why Two Models?**
+- **API Model** (`WeatherApi.WeatherForecast`) - Generated from TypeSpec, matches API contract exactly
+- **Database Model** (`WeatherApp.Data.WeatherForecast`) - Entity Framework entity with database-specific attributes
+- This separation allows the API contract to evolve independently from database schema
+
+### Step 7: Update Seed Project
+
+The seed project can use Entity Framework directly without needing the TypeSpec-generated service layer. Update `WeatherApp.Seed/Program.cs`:
+
+```csharp
+using WeatherApp.Data;
+using WeatherApp.Seed;
+
+var builder = Host.CreateApplicationBuilder(args);
+
+builder.AddServiceDefaults();
+
+// Add Entity Framework with Cosmos DB
+builder.AddCosmosDbContext<WeatherContext>("WeatherData");
+
+// Register the worker service that seeds data
+builder.Services.AddHostedService<Worker>();
+
+var host = builder.Build();
+host.Run();
+```
+
+**Simplified Seed Project:**
+- **Direct EF Access** - Worker service injects `WeatherContext` directly
+- **No API Layer** - Seed project doesn't need the API contract or generated services
+- **Database-Only** - Works with `WeatherApp.Data.WeatherForecast` entities directly
+- **Separation of Concerns** - TypeSpec contract is for API consumers, not internal tooling
+
+Update `WeatherApp.Seed/Worker.cs` to use Entity Framework directly:
+
+```csharp
+using Microsoft.EntityFrameworkCore;
+using WeatherApp.Data;
+
+namespace WeatherApp.Seed;
+
+public class Worker : BackgroundService
+{
+    private readonly ILogger<Worker> _logger;
+    private readonly IServiceScopeFactory _serviceScopeFactory;
+    private readonly IHostApplicationLifetime _hostApplicationLifetime;
+
+    public Worker(ILogger<Worker> logger, IServiceScopeFactory serviceScopeFactory, 
+                  IHostApplicationLifetime hostApplicationLifetime)
+    {
+        _logger = logger;
+        _serviceScopeFactory = serviceScopeFactory;
+        _hostApplicationLifetime = hostApplicationLifetime;
+    }
+
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        _logger.LogInformation("Weather Seeder starting at: {time}", DateTimeOffset.Now);
+        
+        using var scope = _serviceScopeFactory.CreateScope();
+        var weatherContext = scope.ServiceProvider.GetRequiredService<WeatherContext>();
+        
+        // Check if data already exists
+        var firstForecast = await weatherContext.WeatherForecasts
+            .FirstOrDefaultAsync(stoppingToken);
+        if (firstForecast != null)
+        {
+            _logger.LogInformation("Weather data already exists. Skipping seed.");
+            _hostApplicationLifetime.StopApplication();
+            return;
+        }
+
+        // Seed fake weather data
+        _logger.LogInformation("Seeding weather data...");
+        
+        var summaries = new[]
+        {
+            "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", 
+            "Balmy", "Hot", "Sweltering", "Scorching"
+        };
+
+        var cities = new[]
+        {
+            "New York, USA", "London, UK", "Tokyo, Japan", "Sydney, Australia", 
+            "Paris, France", "Berlin, Germany", "Toronto, Canada", "Mumbai, India",
+            "São Paulo, Brazil", "Cairo, Egypt", "Moscow, Russia", "Beijing, China",
+            "Mexico City, Mexico", "Lagos, Nigeria", "Bangkok, Thailand", "Dubai, UAE",
+            "Singapore", "Buenos Aires, Argentina", "Stockholm, Sweden", 
+            "Amsterdam, Netherlands"
+        };
+
+        var forecasts = Enumerable.Range(1, 5).Select(index =>
+            new WeatherForecast
+            (
+                Guid.NewGuid(),
+                DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
+                Random.Shared.Next(-20, 55),
+                summaries[Random.Shared.Next(summaries.Length)],
+                cities[Random.Shared.Next(cities.Length)]
+            ))
+            .ToArray();
+
+        // Add all forecasts to the context
+        await weatherContext.WeatherForecasts.AddRangeAsync(forecasts, stoppingToken);
+        await weatherContext.SaveChangesAsync(stoppingToken);
+
+        foreach (var forecast in forecasts)
+        {
+            _logger.LogInformation("Added forecast: {Date} - {Location} - {Summary} - {TempC}°C", 
+                forecast.Date, forecast.Location, forecast.Summary, forecast.TemperatureC);
+        }
+        
+        _logger.LogInformation("Weather Seeder completed seeding {Count} forecasts at: {time}", 
+            forecasts.Length, DateTimeOffset.Now);
+        
+        // Stop the application after seeding is complete
+        _hostApplicationLifetime.StopApplication();
+    }
+}
+```
+
+**Worker Service Implementation:**
+- **Direct DbContext Injection** - Uses `IServiceScopeFactory` to create a scope and get `WeatherContext`
+- **Idempotent Seeding** - Checks if data exists before seeding to avoid duplicates
+- **Database Entities** - Works directly with `WeatherApp.Data.WeatherForecast` record
+- **Auto-Shutdown** - Stops the application after seeding completes (or if data exists)
+- **Cosmos DB Compatible** - Uses `FirstOrDefaultAsync()` instead of `Any()` for better Cosmos performance
+
+This demonstrates a key architectural benefit: internal tools (like seeders) can work directly with the database layer, while external consumers use the TypeSpec-defined API contract.
 
 ## Testing the Complete Setup 🧪
 
@@ -798,7 +923,7 @@ app.Run();
 
 ```bash
 # Generate all contracts and code
-cd api-contracts
+cd WeatherApp.Typespec
 tsp compile .
 
 # Run the Aspire application
@@ -822,52 +947,14 @@ Visit the Swagger UI to:
 - See validation rules in action
 - Verify error responses
 
-## Automation and CI/CD Integration 🔄
-
-### Step 1: Add Build Script
-
-Create `api-contracts/package.json` script for automation:
-
-```json
-{
-  "scripts": {
-    "build": "tsp compile .",
-    "watch": "tsp compile . --watch",
-    "validate": "tsp compile . --no-emit"
-  }
-}
-```
-
-### Step 2: Pre-build Hook
-
-Add to your main project's build process:
-
-```bash
-# Before building the API, regenerate contracts
-cd api-contracts && npm run build && cd ..
-dotnet build
-```
-
-### Step 3: CI/CD Integration
-
-```yaml
-# GitHub Actions example
-- name: Generate API Contracts
-  run: |
-    cd api-contracts
-    npm install
-    npm run build
-    
-- name: Build API with Generated Code
-  run: dotnet build src/WeatherApp.Api
-```
-
 ## GitHub Repository & Resources 📚
 
 ### Complete Example Repository
 
 All code from this tutorial is available at:
-**[github.com/two4suited/blog-platform-typespec](https://github.com/two4suited/blog-platform-typespec)**
+**[github.com/two4suited/blog-platform-typespec](https://github.com/two4suited/blog-platform-typespec/tree/aspire-tools-typespec)**
+
+Branch: `aspire-tools-typespec`
 
 The repository includes:
 - Complete TypeSpec definitions
@@ -880,16 +967,16 @@ The repository includes:
 ### Folder Structure
 ```
 blog-platform-typespec/
-├── api-contracts/           # TypeSpec definitions
+├── WeatherApp.Typespec/     # TypeSpec definitions
 │   ├── main.tsp
 │   ├── tspconfig.yaml
 │   └── package.json
-├── generated/               # Generated artifacts
-│   ├── openapi/
-│   ├── schemas/
-│   └── controllers/
 ├── src/                     # Aspire application
-│   ├── WeatherApp.Api/
+│   ├── generated/           # Generated OpenAPI specs
+│   │   └── openapi/
+│   ├── WeatherApp.Api/      # API project
+│   │   └── generated/       # TypeSpec-generated models
+│   │       └── Models/
 │   ├── WeatherApp.Web/
 │   └── WeatherApp.AppHost/
 └── README.md
@@ -921,45 +1008,24 @@ blog-platform-typespec/
 3. **HTTP APIs**: [REST API Guide](https://typespec.io/docs/libraries/http)
 4. **Advanced**: [Custom Decorators](https://typespec.io/docs/extending-typespec/basics)
 
-## What We've Accomplished Today 🎉
-
-**🏗️ Complete TypeSpec Integration**
-- ✅ Installed TypeSpec tooling and VS Code extension
-- ✅ Created TypeSpec project with proper configuration
-- ✅ Defined comprehensive API contracts with validation
-- ✅ Added custom error messages and response handling
-
-**📄 Code Generation Pipeline**
-- ✅ Generated OpenAPI 3.0 specification automatically
-- ✅ Created .NET controllers and models from TypeSpec
-- ✅ Integrated Swagger UI into Aspire dashboard
-- ✅ Set up automated contract-first development workflow
-
-**🔗 Full Integration**
-- ✅ Connected TypeSpec to existing Aspire application
-- ✅ Added interactive API documentation
-- ✅ Established single source of truth for API contracts
-- ✅ Created sustainable development process
-
 ## Conclusion 🎉
 
 We've successfully transformed our weather application from implementation-first to contract-first development using TypeSpec. By defining our API contract in TypeSpec, we've eliminated the manual coordination between frontend and backend teams while gaining better type safety, comprehensive documentation, and automated code generation.
 
-**What We Accomplished:**
-- ✅ **Contract-First Development** - Single source of truth for our weather API
-- ✅ **Automated Code Generation** - OpenAPI specs, .NET controllers, and TypeScript types
-- ✅ **Comprehensive Error Handling** - Proper validation and error responses
+**What We Built:**
+- ✅ **TypeSpec API Definition** - Single source of truth with clean, readable syntax
+- ✅ **OpenAPI Specification** - Auto-generated from TypeSpec for tooling compatibility
+- ✅ **C# Server Code** - Generated interfaces and models for .NET API
 - ✅ **Interactive Documentation** - Swagger UI integrated with Aspire dashboard
-- ✅ **Type Safety** - End-to-end type safety from contract to implementation
-- ✅ **Developer Experience** - IntelliSense, validation, and automated workflows
+- ✅ **End-to-End Type Safety** - Contract drives both frontend and backend implementation
 
-**Why This Approach Works:**
-- **Eliminates Drift** - Frontend and backend can't get out of sync
-- **Faster Development** - Teams can work in parallel from the same contract
+**Key Benefits:**
+- **No More Drift** - Frontend and backend can't get out of sync
+- **Parallel Development** - Teams work from the same contract simultaneously
 - **Better Quality** - Validation and error handling defined upfront
 - **Future-Proof** - Works with existing OpenAPI ecosystem and tools
 
-Our weather API now serves as a model for contract-first development that can scale across teams and projects. The TypeSpec definition becomes the authoritative source that drives both implementation and documentation.
+Our weather API now demonstrates contract-first development that can scale across teams and projects. The TypeSpec definition becomes the authoritative source that drives both implementation and documentation.
 
 ### Next Steps in Our Platform Journey
 

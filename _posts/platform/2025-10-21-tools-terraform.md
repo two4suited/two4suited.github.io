@@ -19,6 +19,8 @@ In our [tool selection post](https://brianpsheridan.com/platform/tools/moderniza
 
 This post walks through setting up **Terraform Cloud** with Azure, organizing infrastructure code, and building modules that align with Azure's resource classification patterns from [Azure Charts](https://azurecharts.com/).
 
+**📦 Code Repository**: All the Terraform code from this tutorial is available on GitHub at [blog-platform-aspire/aspire-tools-terraform](https://github.com/two4suited/blog-platform-aspire/tree/aspire-tools-terraform).
+
 ## Why Terraform Cloud? ☁️
 
 Before diving into the setup, let's understand why we're using Terraform Cloud instead of local state files or basic remote backends:

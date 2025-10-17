@@ -34,13 +34,15 @@ Before diving into the setup, let's understand why we're using Terraform Cloud i
 - Audit logging for compliance
 
 **Team Workflows**
-- VCS-driven runs with GitHub integration
-- Policy enforcement with Sentinel
+- CLI-driven runs for infrastructure deployments
+- VCS integration for module versioning and publishing
+- Shared state management across teams
 - Private module registry for code reuse
 
 **Cost Optimization**
 - Free tier supports up to 500 resources per month
 - Pay only for what you use beyond that
+- **Note**: While 500 free resources sounds generous, the per-resource cost beyond that is quite high. If you're managing large-scale infrastructure across multiple environments, costs can add up quickly. In a future post, we'll explore migrating state management to Azure Storage Account as a more cost-effective alternative for teams with extensive infrastructure footprints.
 
 ## Terraform Cloud Setup 🛠️
 
@@ -66,45 +68,153 @@ This maps well to our platform structure:
 
 ```
 Organization: my-org
-├── Project: Platform Infrastructure
-│   ├── Workspace: shared-services-dev
-│   ├── Workspace: shared-services-staging
-│   └── Workspace: shared-services-prod
-└── Project: Application Environments
-    ├── Workspace: app-dev
-    ├── Workspace: app-staging
-    └── Workspace: app-prod
+├── Project: Shared Services
+│   ├── Workspace: shared-services        # Cross-environment resources
+│                                         # (App Config, Key Vault, ACR)
+├── Project: Environment Infrastructure
+│   ├── Workspace: env-dev               # Environment-level resources
+│   ├── Workspace: env-staging           # (Front Door, APIM, App Service Plans)
+│   └── Workspace: env-prod
+└── Project: Applications
+    ├── Workspace: app-weather-dev       # App-specific resources
+    ├── Workspace: app-weather-staging   # (Web Apps, settings, FD/APIM config)
+    └── Workspace: app-weather-prod
 ```
+
+**Note**: We'll dive deeper into this Azure resource organization strategy in a later post on Azure environment architecture.
 
 ### Creating Projects
 
 In Terraform Cloud UI:
 
 1. Navigate to **Projects** → **New Project**
-2. Create "Platform Infrastructure" project
-3. Create "Application Environments" project
+2. Create a project called **"platform-blog-post"**
+3. We'll create workspaces within this project in the next steps
 
-Or use the Terraform CLI:
+For this tutorial, we'll keep it simple with one project and three workspaces:
+- **shared-services** - For cross-environment shared resources (ACR)
+- **env-test** - For environment-level infrastructure (App Service Plan)
+- **app-test** - For application-specific resources (Web App)
+
+**Creating Workspaces:**
+
+1. In Terraform Cloud, navigate to your **platform-blog-post** project
+2. Click **New workspace**
+3. Choose **CLI-driven workflow** (not VCS-driven)
+4. Name it **shared-services** (repeat for **env-test** and **app-test**)
+
+You should end up with three workspaces in your project:
+- `shared-services` - Deploy first (no dependencies)
+- `env-test` - Deploy second (depends on shared-services)
+- `app-test` - Deploy third (depends on both shared-services and env-test)
+
+**Why CLI-driven workflow?**
+- Gives you full control over when and how infrastructure is deployed
+- Allows orchestration via pipelines (GitHub Actions, Azure DevOps, etc.)
+- Perfect for complex deployment workflows with dependencies
+- You trigger runs from your local machine or CI/CD pipeline, not from Git commits
+
+We'll explore pipeline automation in a future post on Azure DevOps Pipelines.
+
+### Installing Terraform CLI
+
+Before we can work with Terraform Cloud, we need to install the Terraform CLI:
+
+**macOS (using Homebrew):**
+```bash
+brew tap hashicorp/tap
+brew install hashicorp/tap/terraform
+
+# Verify installation
+terraform version
+```
+
+**Windows (using Chocolatey):**
+```bash
+choco install terraform
+
+# Verify installation
+terraform version
+```
+
+**Linux (Ubuntu/Debian):**
+```bash
+wget -O- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
+sudo apt update && sudo apt install terraform
+
+# Verify installation
+terraform version
+```
+
+### Logging into Terraform Cloud
+
+Once Terraform is installed, authenticate with Terraform Cloud:
 
 ```bash
 # Login to Terraform Cloud
 terraform login
 
-# Projects are created automatically when you create workspaces
-# We'll create workspaces in the next section
+# This will:
+# 1. Open your browser to https://app.terraform.io/app/settings/tokens
+# 2. Prompt you to create an API token
+# 3. Copy the token back to your terminal
+# 4. Store the token in ~/.terraform.d/credentials.tfrc.json
+```
+
+**What happens during login:**
+- Terraform opens your browser to the token creation page
+- You create a token (give it a descriptive name like "Local Development")
+- The token is saved locally and used for all future Terraform Cloud API calls
+- This token authenticates your CLI operations (plan, apply, etc.)
+
+**Manual token creation (alternative):**
+If `terraform login` doesn't work, you can manually create the credentials file:
+
+```bash
+# Create the credentials file
+mkdir -p ~/.terraform.d
+cat > ~/.terraform.d/credentials.tfrc.json <<EOF
+{
+  "credentials": {
+    "app.terraform.io": {
+      "token": "YOUR_TOKEN_HERE"
+    }
+  }
+}
+EOF
 ```
 
 ## Azure Service Principal Setup 🔐
 
 Now comes the critical part: setting up secure authentication between Terraform Cloud and Azure. We'll use **Workload Identity Federation** instead of storing client secrets.
 
+**Prerequisites:**
+- Azure CLI installed ([installation guide](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli))
+- An Azure subscription
+
 ### Step 1: Create the Service Principal
 
+First, authenticate with Azure:
+
 ```bash
-# Set your Azure subscription
+# Login to Azure
+az login
+
+# If you have multiple subscriptions, list them
+az account list --output table
+
+# Set the subscription you want to use
 SUBSCRIPTION_ID="your-subscription-id"
 az account set --subscription $SUBSCRIPTION_ID
 
+# Verify you're using the correct subscription
+az account show
+```
+
+Now create the service principal:
+
+```bash
 # Create a service principal for Terraform
 SP_NAME="terraform-platform-sp"
 
@@ -130,27 +240,187 @@ rm sp-output.json
 
 This is where the magic happens - no stored secrets!
 
+**Important**: Azure federated credentials don't support wildcards (`*`) in the subject pattern. You need to create a separate credential for each workspace and run phase combination.
+
 ```bash
 # Get your Terraform Cloud organization name
 TF_CLOUD_ORG="my-org"
 
-# Create federated credential for the service principal
+# IMPORTANT: Project name must match EXACTLY as shown in Terraform Cloud (case-sensitive)
+PROJECT_NAME="platform-blog-post"
+
+# For our three-tier architecture, we need credentials for each workspace's plan and apply phases
+# That's 6 total credentials: 3 workspaces × 2 run phases (plan + apply)
+
+# 1. Shared Services - Plan
 az ad app federated-credential create \
   --id $CLIENT_ID \
   --parameters '{
-    "name": "terraform-cloud-federation",
+    "name": "tfc-shared-services-plan",
     "issuer": "https://app.terraform.io",
-    "subject": "organization:'$TF_CLOUD_ORG':project:*:workspace:*:run_phase:*",
-    "description": "Terraform Cloud workload identity",
+    "subject": "organization:'$TF_CLOUD_ORG':project:'$PROJECT_NAME':workspace:shared-services:run_phase:plan",
+    "description": "Terraform Cloud - shared-services workspace, plan phase",
+    "audiences": ["api://AzureADTokenExchange"]
+  }'
+
+# 2. Shared Services - Apply
+az ad app federated-credential create \
+  --id $CLIENT_ID \
+  --parameters '{
+    "name": "tfc-shared-services-apply",
+    "issuer": "https://app.terraform.io",
+    "subject": "organization:'$TF_CLOUD_ORG':project:'$PROJECT_NAME':workspace:shared-services:run_phase:apply",
+    "description": "Terraform Cloud - shared-services workspace, apply phase",
+    "audiences": ["api://AzureADTokenExchange"]
+  }'
+
+# 3. Environment Test - Plan
+az ad app federated-credential create \
+  --id $CLIENT_ID \
+  --parameters '{
+    "name": "tfc-env-test-plan",
+    "issuer": "https://app.terraform.io",
+    "subject": "organization:'$TF_CLOUD_ORG':project:'$PROJECT_NAME':workspace:env-test:run_phase:plan",
+    "description": "Terraform Cloud - env-test workspace, plan phase",
+    "audiences": ["api://AzureADTokenExchange"]
+  }'
+
+# 4. Environment Test - Apply
+az ad app federated-credential create \
+  --id $CLIENT_ID \
+  --parameters '{
+    "name": "tfc-env-test-apply",
+    "issuer": "https://app.terraform.io",
+    "subject": "organization:'$TF_CLOUD_ORG':project:'$PROJECT_NAME':workspace:env-test:run_phase:apply",
+    "description": "Terraform Cloud - env-test workspace, apply phase",
+    "audiences": ["api://AzureADTokenExchange"]
+  }'
+
+# 5. App Test - Plan
+az ad app federated-credential create \
+  --id $CLIENT_ID \
+  --parameters '{
+    "name": "tfc-app-test-plan",
+    "issuer": "https://app.terraform.io",
+    "subject": "organization:'$TF_CLOUD_ORG':project:'$PROJECT_NAME':workspace:app-test:run_phase:plan",
+    "description": "Terraform Cloud - app-test workspace, plan phase",
+    "audiences": ["api://AzureADTokenExchange"]
+  }'
+
+# 6. App Test - Apply
+az ad app federated-credential create \
+  --id $CLIENT_ID \
+  --parameters '{
+    "name": "tfc-app-test-apply",
+    "issuer": "https://app.terraform.io",
+    "subject": "organization:'$TF_CLOUD_ORG':project:'$PROJECT_NAME':workspace:app-test:run_phase:apply",
+    "description": "Terraform Cloud - app-test workspace, apply phase",
+    "audiences": ["api://AzureADTokenExchange"]
+  }'
+```
+
+**Understanding the subject pattern:**
+
+The `subject` field defines which Terraform Cloud runs can use this credential:
+
+```
+organization:<ORG>:project:<PROJECT>:workspace:<WORKSPACE>:run_phase:<PHASE>
+```
+
+- `organization`: Your Terraform Cloud org name (required, exact match)
+- `project`: Project name (exact match, no wildcards)
+- `workspace`: Workspace name (exact match, no wildcards)
+- `run_phase`: Either `plan` or `apply` (exact match, no wildcards)
+
+**Important**: Wildcards (`*`) are **not supported** in Azure federated credentials. Each workspace and run phase combination requires its own credential.
+
+**Security best practices:**
+
+- **Development**: Create credentials for both `plan` and `apply` phases per workspace
+- **Production**: Consider creating only `apply` credentials to prevent unauthorized planning (though both are typically needed)
+- **Multiple environments**: Create separate service principals for dev, staging, and prod with appropriate Azure RBAC permissions
+- **Least privilege**: Each service principal should only have access to resources in its environment
+
+**Example: Separate service principals for dev and prod:**
+
+```bash
+# Dev service principal - for dev/test workspaces
+SP_NAME_DEV="terraform-platform-dev-sp"
+az ad sp create-for-rbac \
+  --name $SP_NAME_DEV \
+  --role Contributor \
+  --scopes "/subscriptions/$DEV_SUBSCRIPTION_ID"
+
+CLIENT_ID_DEV=$(az ad sp list --display-name $SP_NAME_DEV --query "[0].appId" -o tsv)
+
+# Create credentials for dev workspaces
+az ad app federated-credential create \
+  --id $CLIENT_ID_DEV \
+  --parameters '{
+    "name": "tfc-env-dev-plan",
+    "subject": "organization:'$TF_CLOUD_ORG':project:platform-blog-post:workspace:env-dev:run_phase:plan",
+    "audiences": ["api://AzureADTokenExchange"]
+  }'
+
+az ad app federated-credential create \
+  --id $CLIENT_ID_DEV \
+  --parameters '{
+    "name": "tfc-env-dev-apply",
+    "subject": "organization:'$TF_CLOUD_ORG':project:platform-blog-post:workspace:env-dev:run_phase:apply",
+    "audiences": ["api://AzureADTokenExchange"]
+  }'
+
+# Prod service principal - for prod workspaces only
+SP_NAME_PROD="terraform-platform-prod-sp"
+az ad sp create-for-rbac \
+  --name $SP_NAME_PROD \
+  --role Contributor \
+  --scopes "/subscriptions/$PROD_SUBSCRIPTION_ID"
+
+CLIENT_ID_PROD=$(az ad sp list --display-name $SP_NAME_PROD --query "[0].appId" -o tsv)
+
+# Create credentials for prod workspaces
+az ad app federated-credential create \
+  --id $CLIENT_ID_PROD \
+  --parameters '{
+    "name": "tfc-env-prod-plan",
+    "subject": "organization:'$TF_CLOUD_ORG':project:platform-blog-post:workspace:env-prod:run_phase:plan",
+    "audiences": ["api://AzureADTokenExchange"]
+  }'
+
+az ad app federated-credential create \
+  --id $CLIENT_ID_PROD \
+  --parameters '{
+    "name": "tfc-env-prod-apply",
+    "subject": "organization:'$TF_CLOUD_ORG':project:platform-blog-post:workspace:env-prod:run_phase:apply",
     "audiences": ["api://AzureADTokenExchange"]
   }'
 ```
 
 **What's happening here?**
 
-- Terraform Cloud gets a token from Azure AD when runs execute
-- Azure validates the token matches the subject pattern (org/project/workspace)
-- No client secret needed - the trust is based on the issuer (Terraform Cloud)
+- Terraform Cloud requests a token from Azure AD when runs execute
+- Azure validates the token matches the exact subject pattern (org/project/workspace/phase)
+- No client secret needed - the trust is based on the issuer (Terraform Cloud) and the specific subject pattern
+- Each workspace/phase combination needs its own federated credential (6 total for our 3 workspaces)
+- Azure enforces exact matching - no wildcards are supported in the subject field
+
+**Credential naming convention:**
+
+Use descriptive names for easy management: `tfc-<workspace>-<phase>`
+- `tfc-shared-services-plan`
+- `tfc-shared-services-apply`
+- `tfc-env-test-plan`
+- `tfc-env-test-apply`
+- `tfc-app-test-plan`
+- `tfc-app-test-apply`
+
+**Scaling to multiple environments:**
+
+When you add more environments (dev, staging, prod), you'll create additional credentials:
+- For `env-dev`, `env-staging`, `env-prod` workspaces: 6 more credentials (3 workspaces × 2 phases)
+- For `app-myapp-dev`, `app-myapp-staging`, `app-myapp-prod`: 6 more credentials per app
+- Consider using separate service principals per environment for better security isolation
 
 ### Step 3: Assign Azure Permissions
 
@@ -170,56 +440,132 @@ az role assignment create \
   --scope "/subscriptions/$SUBSCRIPTION_ID"
 ```
 
-### Step 4: Configure Terraform Cloud Workspace Variables
+### Step 4: Configure Terraform Cloud Variable Set
 
-For each workspace, configure these environment variables:
+Instead of configuring variables individually for each workspace, we'll create a **Variable Set** and apply it to the entire project. This makes it easy to share authentication credentials across all workspaces.
 
-In Terraform Cloud UI → Workspace → Variables:
+**In Terraform Cloud UI:**
+
+1. Navigate to **Settings** → **Variable Sets** → **Create variable set**
+2. Name it **"Azure Authentication - Dev"** (or your environment name)
+3. Add a description: "Azure service principal credentials for OIDC authentication"
+4. Add the following **Environment Variables**:
 
 ```hcl
 # Azure Authentication (Environment Variables)
-ARM_CLIENT_ID           = "<client-id>"        # From step 1
-ARM_SUBSCRIPTION_ID     = "<subscription-id>"
-ARM_TENANT_ID          = "<tenant-id>"         # From step 1
-ARM_USE_OIDC           = "true"               # Enable OIDC
+ARM_SUBSCRIPTION_ID         = "<subscription-id>"
+ARM_TENANT_ID              = "<tenant-id>"         # From step 1
+TFC_AZURE_PROVIDER_AUTH    = "true"               # Enable OIDC for Terraform Cloud
+TFC_AZURE_RUN_CLIENT_ID    = "<client-id>"        # From step 1
 ```
 
-**Important**: Mark these as environment variables, NOT Terraform variables. Also mark sensitive variables as sensitive.
+5. Apply the variable set to:
+   - **Scope**: Select "Apply to specific projects and workspaces"
+   - **Projects**: Choose your **"platform-blog-post"** project
+   - This automatically applies to ALL workspaces in the project (env-test, app-test, etc.)
+
+**Important notes:**
+- Mark these as **Environment Variables**, NOT Terraform variables
+- You can mark `ARM_SUBSCRIPTION_ID`, `ARM_TENANT_ID`, and `TFC_AZURE_RUN_CLIENT_ID` as sensitive if desired
+- `TFC_AZURE_PROVIDER_AUTH` is the Terraform Cloud-specific variable that enables OIDC authentication
+- `TFC_AZURE_RUN_CLIENT_ID` is the client ID of the Azure AD application/service principal
+
+**Benefits of Variable Sets:**
+- ✅ Configure once, apply to all workspaces in the project
+- ✅ Easy to update credentials across all workspaces
+- ✅ Can create separate variable sets for different environments (dev/staging/prod)
+- ✅ Can scope to specific projects or workspaces as needed
+
+**For multiple environments:**
+
+You might create separate variable sets for different environments:
+- **"Azure Authentication - Dev"** → Applied to dev-related projects
+- **"Azure Authentication - Staging"** → Applied to staging projects  
+- **"Azure Authentication - Prod"** → Applied to prod projects (with different service principal)
+
+Each variable set would use a different `TFC_AZURE_RUN_CLIENT_ID` corresponding to the service principal created for that environment (with appropriate subject pattern scoping).
 
 No `ARM_CLIENT_SECRET` needed! 🎉
 
 ## Infrastructure Code Organization 📁
 
-Now let's structure our Terraform code. We'll create an `infra` folder with two main areas:
+Now let's structure our Terraform code using a three-tier architecture that separates concerns by lifecycle and scope. For this tutorial, we'll focus on the essential building blocks: **Container Registry**, **App Service Plan**, and **Web App**.
+
+**Note**: For this tutorial, we're keeping modules local within each infrastructure layer. In a future post, we'll extract these modules into separate Git repositories and publish them to Terraform Cloud's private registry for reuse across multiple projects.
+
+**File Organization**: While Terraform allows you to put all configuration in a single `.tf` file (Terraform loads all `.tf` files in a directory), I prefer breaking it out into separate files (`main.tf`, `variables.tf`, `outputs.tf`, `terraform.tf`) for better organization and readability. This separation makes it easier to find specific configurations and follows common Terraform conventions.
+
+We'll create an `infra` folder with three main layers:
 
 ```
 infra/
-├── shared/                      # Shared services infrastructure
+├── shared-services/             # Cross-environment shared resources
+│   ├── main.tf                 # Resource definitions
+│   ├── variables.tf            # Input variables
+│   ├── outputs.tf              # Output values
+│   ├── terraform.tf            # Terraform & provider config
+│   └── modules/
+│       └── container-registry/  # Azure Container Registry
+│           ├── main.tf
+│           ├── variables.tf
+│           └── outputs.tf
+│
+├── environment/                 # Environment-level infrastructure
 │   ├── main.tf
 │   ├── variables.tf
 │   ├── outputs.tf
-│   ├── terraform.tf            # Backend config
+│   ├── terraform.tf
 │   └── modules/
-│       ├── identity-module/     # From azurecharts.com
-│       ├── integration-module/
-│       ├── networking-module/
-│       └── storage-module/
-└── app/                         # Application infrastructure
+│       └── app-service-plan/    # Shared App Service Plans
+│           ├── main.tf
+│           ├── variables.tf
+│           └── outputs.tf
+│
+└── app/                         # Application-specific resources
     ├── main.tf
     ├── variables.tf
     ├── outputs.tf
     ├── terraform.tf
     └── modules/
-        ├── compute-module/      # From azurecharts.com
-        ├── container-module/
-        └── database-module/
+        └── web-app/             # App Service Web Apps
+            ├── main.tf
+            ├── variables.tf
+            └── outputs.tf
 ```
 
-### Shared Infrastructure (`infra/shared`)
+**Three-tier structure explained:**
 
-This contains resources shared across all applications:
+1. **Shared Services** (`infra/shared-services/`)
+   - Resources used across **all environments** (dev, staging, prod)
+   - Deployed **once** and referenced by all other layers
+   - Example: Container Registry for storing Docker images
 
-**`infra/shared/terraform.tf`**
+2. **Environment** (`infra/environment/`)
+   - Resources specific to an **environment** but shared across apps
+   - Deployed **per environment** (separate for dev, staging, prod)
+   - Example: App Service Plan (shared compute for multiple apps)
+
+3. **App** (`infra/app/`)
+   - Resources for a **specific application**
+   - Deployed **per app per environment**
+   - Example: Web App instance with app-specific settings
+
+**Why this structure?**
+
+- **Clear separation of concerns** - Different lifecycles for different resource types
+- **Resource sharing** - ACR shared across all environments, App Service Plan shared within an environment
+- **Independent deployments** - Can update app without touching shared services
+- **Cost optimization** - Share expensive resources (ACR, App Service Plans) where appropriate
+
+Later, we can expand each layer with additional modules like Key Vault, Front Door, API Management, and Application Insights.
+
+**Note**: We'll dive deeper into this Azure resource organization strategy in our upcoming post on Azure environment architecture.
+
+### Layer 1: Shared Services Infrastructure
+
+This contains resources shared across **all environments** - deployed once and used by dev, staging, and prod.
+
+**`infra/shared-services/terraform.tf`**
 ```hcl
 terraform {
   required_version = ">= 1.6"
@@ -228,14 +574,14 @@ terraform {
     organization = "my-org"
     
     workspaces {
-      name = "shared-services-dev"
+      name = "shared-services"
     }
   }
 
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "~> 3.80"
+      version = "~> 4.40"
     }
   }
 }
@@ -243,52 +589,317 @@ terraform {
 provider "azurerm" {
   features {}
   
-  # OIDC authentication - no client secret needed!
-  use_oidc = true
+  # OIDC authentication - automatically detected from TFC_AZURE_PROVIDER_AUTH environment variable
 }
 ```
 
-**`infra/shared/main.tf`**
+**`infra/shared-services/variables.tf`**
 ```hcl
-# Use modules for standardized resource groups
-module "networking" {
-  source = "./modules/networking-module"
-  
-  environment = var.environment
-  location    = var.location
-  tags        = var.tags
+variable "location" {
+  description = "Azure region for shared resources"
+  type        = string
+  default     = "westus2"
 }
 
-module "identity" {
-  source = "./modules/identity-module"
-  
-  environment = var.environment
-  location    = var.location
-  tags        = var.tags
-}
-
-module "integration" {
-  source = "./modules/integration-module"
-  
-  environment        = var.environment
-  location          = var.location
-  tags              = var.tags
-  vnet_id           = module.networking.vnet_id
-  subnet_ids        = module.networking.subnet_ids
-}
-
-module "storage" {
-  source = "./modules/storage-module"
-  
-  environment = var.environment
-  location    = var.location
-  tags        = var.tags
+variable "tags" {
+  description = "Tags to apply to all resources"
+  type        = map(string)
+  default = {
+    ManagedBy = "Terraform"
+    Project   = "Platform"
+    Layer     = "Shared-Services"
+  }
 }
 ```
 
-### Application Infrastructure (`infra/app`)
+**`infra/shared-services/main.tf`**
+```hcl
+# Resource Group for shared services
+resource "azurerm_resource_group" "shared" {
+  name     = "rg-shared-services"
+  location = var.location
+  tags     = var.tags
+}
 
-This contains application-specific resources:
+# Azure Container Registry - shared across all environments
+module "container_registry" {
+  source = "./modules/container-registry"
+  
+  resource_group_name = azurerm_resource_group.shared.name
+  location            = azurerm_resource_group.shared.location
+  tags                = var.tags
+}
+```
+
+**`infra/shared-services/outputs.tf`**
+```hcl
+output "resource_group_name" {
+  description = "Shared services resource group name"
+  value       = azurerm_resource_group.shared.name
+}
+
+output "acr_id" {
+  description = "Container Registry ID"
+  value       = module.container_registry.id
+}
+
+output "acr_login_server" {
+  description = "Container Registry login server"
+  value       = module.container_registry.login_server
+}
+
+output "acr_name" {
+  description = "Container Registry name"
+  value       = module.container_registry.name
+}
+```
+
+**Container Registry Module** (`infra/shared-services/modules/container-registry/main.tf`)
+```hcl
+resource "random_string" "suffix" {
+  length  = 6
+  special = false
+  upper   = false
+}
+
+resource "azurerm_container_registry" "main" {
+  name                = "acrshared${random_string.suffix.result}"
+  resource_group_name = var.resource_group_name
+  location            = var.location
+  sku                 = "Basic"
+  admin_enabled       = false
+  
+  tags = var.tags
+}
+```
+
+**Container Registry Module Variables** (`infra/shared-services/modules/container-registry/variables.tf`)
+```hcl
+variable "resource_group_name" {
+  description = "Resource group name"
+  type        = string
+}
+
+variable "location" {
+  description = "Azure region"
+  type        = string
+}
+
+variable "tags" {
+  description = "Resource tags"
+  type        = map(string)
+}
+```
+
+**Container Registry Module Outputs** (`infra/shared-services/modules/container-registry/outputs.tf`)
+```hcl
+output "id" {
+  description = "Container Registry ID"
+  value       = azurerm_container_registry.main.id
+}
+
+output "login_server" {
+  description = "Container Registry login server"
+  value       = azurerm_container_registry.main.login_server
+}
+
+output "name" {
+  description = "Container Registry name"
+  value       = azurerm_container_registry.main.name
+}
+```
+
+**Deploying Shared Services**
+
+Now deploy the shared services layer:
+
+```bash
+cd infra/shared-services
+terraform init
+terraform plan
+terraform apply  # Add --auto-approve to skip confirmation prompt
+
+# Capture outputs for later use
+ACR_LOGIN_SERVER=$(terraform output -raw acr_login_server)
+echo "ACR Login Server: $ACR_LOGIN_SERVER"
+```
+
+### Layer 2: Environment Infrastructure
+
+This contains resources specific to an **environment** but shared across applications within that environment.
+
+**`infra/environment/terraform.tf`**
+```hcl
+terraform {
+  required_version = ">= 1.6"
+
+  cloud {
+    organization = "my-org"
+    
+    workspaces {
+      name = "env-test"  # For tutorial; use env-dev, env-staging, env-prod for multiple environments
+    }
+  }
+
+  required_providers {
+    azurerm = {
+      source  = "hashicorp/azurerm"
+      version = "~> 4.40"
+    }
+  }
+}
+
+provider "azurerm" {
+  features {}
+}
+```
+
+**`infra/environment/variables.tf`**
+```hcl
+variable "environment" {
+  description = "Environment name (test, dev, staging, prod)"
+  type        = string
+  
+  validation {
+    condition     = contains(["test", "dev", "staging", "prod"], var.environment)
+    error_message = "Environment must be test, dev, staging, or prod."
+  }
+}
+
+variable "location" {
+  description = "Azure region for resources"
+  type        = string
+  default     = "westus2"
+}
+
+variable "tags" {
+  description = "Tags to apply to all resources"
+  type        = map(string)
+  default = {
+    ManagedBy = "Terraform"
+    Project   = "Platform"
+  }
+}
+```
+
+**`infra/environment/main.tf`**
+```hcl
+# Reference shared services
+data "terraform_remote_state" "shared" {
+  backend = "remote"
+  
+  config = {
+    organization = "my-org"
+    workspaces = {
+      name = "shared-services"
+    }
+  }
+}
+
+# Resource Group for environment infrastructure
+resource "azurerm_resource_group" "environment" {
+  name     = "rg-${var.environment}"
+  location = var.location
+  tags     = merge(var.tags, { Environment = var.environment })
+}
+
+# App Service Plan - shared compute for all apps in this environment
+module "app_service_plan" {
+  source = "./modules/app-service-plan"
+  
+  resource_group_name = azurerm_resource_group.environment.name
+  environment         = var.environment
+  location            = azurerm_resource_group.environment.location
+  tags                = merge(var.tags, { Environment = var.environment })
+}
+```
+
+**`infra/environment/outputs.tf`**
+```hcl
+output "app_service_plan_id" {
+  description = "App Service Plan ID"
+  value       = module.app_service_plan.id
+}
+
+output "app_service_plan_name" {
+  description = "App Service Plan name"
+  value       = module.app_service_plan.name
+}
+
+# Pass through shared services outputs for convenience
+output "acr_login_server" {
+  description = "Container Registry login server from shared services"
+  value       = data.terraform_remote_state.shared.outputs.acr_login_server
+}
+```
+
+**App Service Plan Module** (`infra/environment/modules/app-service-plan/main.tf`)
+```hcl
+resource "azurerm_service_plan" "main" {
+  name                = "asp-${var.environment}"
+  resource_group_name = var.resource_group_name
+  location            = var.location
+  os_type             = "Linux"
+  sku_name            = var.environment == "prod" ? "P1v3" : "P0v3"
+  
+  tags = var.tags
+}
+```
+
+**App Service Plan Module Variables** (`infra/environment/modules/app-service-plan/variables.tf`)
+```hcl
+variable "resource_group_name" {
+  description = "Resource group name"
+  type        = string
+}
+
+variable "environment" {
+  description = "Environment name"
+  type        = string
+}
+
+variable "location" {
+  description = "Azure region"
+  type        = string
+}
+
+variable "tags" {
+  description = "Resource tags"
+  type        = map(string)
+}
+```
+
+**App Service Plan Module Outputs** (`infra/environment/modules/app-service-plan/outputs.tf`)
+```hcl
+output "id" {
+  description = "App Service Plan ID"
+  value       = azurerm_service_plan.main.id
+}
+
+output "name" {
+  description = "App Service Plan name"
+  value       = azurerm_service_plan.main.name
+}
+```
+
+**Deploying Environment Infrastructure**
+
+Deploy the environment layer (requires shared services to be deployed first):
+
+```bash
+cd ../environment
+terraform init
+terraform plan -var="environment=test"
+terraform apply -var="environment=test"  # Add --auto-approve to skip confirmation prompt
+
+# Capture outputs
+APP_SERVICE_PLAN_ID=$(terraform output -raw app_service_plan_id)
+echo "App Service Plan ID: $APP_SERVICE_PLAN_ID"
+```
+
+### Layer 3: Application Infrastructure
+
+This contains resources for a **specific application** - deployed per app per environment.
 
 **`infra/app/terraform.tf`**
 ```hcl
@@ -299,687 +910,247 @@ terraform {
     organization = "my-org"
     
     workspaces {
-      name = "app-dev"
+      name = "app-test"  # For tutorial; use app-myapp-dev, app-myapp-staging, app-myapp-prod for multiple environments
     }
   }
 
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "~> 3.80"
+      version = "~> 4.40"
     }
   }
 }
 
 provider "azurerm" {
   features {}
-  use_oidc = true
+}
+```
+
+**`infra/app/variables.tf`**
+```hcl
+variable "environment" {
+  description = "Environment name (test, dev, staging, prod)"
+  type        = string
+  
+  validation {
+    condition     = contains(["test", "dev", "staging", "prod"], var.environment)
+    error_message = "Environment must be test, dev, staging, or prod."
+  }
+}
+
+variable "app_name" {
+  description = "Application name"
+  type        = string
+  default     = "myapp"
+}
+
+variable "location" {
+  description = "Azure region for resources"
+  type        = string
+  default     = "westus2"
+}
+
+variable "tags" {
+  description = "Tags to apply to all resources"
+  type        = map(string)
+  default = {
+    ManagedBy = "Terraform"
+    Project   = "Platform"
+  }
 }
 ```
 
 **`infra/app/main.tf`**
 ```hcl
-# Reference shared infrastructure outputs
+# Reference shared services and environment infrastructure
 data "terraform_remote_state" "shared" {
   backend = "remote"
   
   config = {
     organization = "my-org"
     workspaces = {
-      name = "shared-services-${var.environment}"
+      name = "shared-services"
     }
   }
 }
 
-module "compute" {
-  source = "./modules/compute-module"
+data "terraform_remote_state" "environment" {
+  backend = "remote"
   
-  environment     = var.environment
-  location        = var.location
-  tags            = var.tags
-  subnet_id       = data.terraform_remote_state.shared.outputs.app_subnet_id
-  acr_id          = data.terraform_remote_state.shared.outputs.acr_id
-}
-
-module "containers" {
-  source = "./modules/container-module"
-  
-  environment = var.environment
-  location    = var.location
-  tags        = var.tags
-  subnet_id   = data.terraform_remote_state.shared.outputs.container_subnet_id
-}
-
-module "database" {
-  source = "./modules/database-module"
-  
-  environment = var.environment
-  location    = var.location
-  tags        = var.tags
-  subnet_id   = data.terraform_remote_state.shared.outputs.db_subnet_id
-}
-```
-
-## Azure Charts Resource Classification 📊
-
-[Azure Charts](https://azurecharts.com/) provides an excellent resource classification system. We've modeled our modules after their groupings:
-
-### Identity Module (Identity & Access Management)
-```hcl
-# infra/shared/modules/identity-module/main.tf
-resource "azurerm_resource_group" "identity" {
-  name     = "rg-${var.environment}-identity"
-  location = var.location
-  tags     = var.tags
-}
-
-# Key Vault for secrets
-resource "azurerm_key_vault" "main" {
-  name                = "kv-${var.environment}-${random_string.suffix.result}"
-  location            = azurerm_resource_group.identity.location
-  resource_group_name = azurerm_resource_group.identity.name
-  tenant_id           = data.azurerm_client_config.current.tenant_id
-  sku_name           = "standard"
-  
-  # Enable for Azure RBAC
-  enable_rbac_authorization = true
-  
-  tags = var.tags
-}
-
-# Managed Identities
-resource "azurerm_user_assigned_identity" "app_identity" {
-  name                = "id-${var.environment}-app"
-  resource_group_name = azurerm_resource_group.identity.name
-  location            = azurerm_resource_group.identity.location
-  tags                = var.tags
-}
-```
-
-### Networking Module
-```hcl
-# infra/shared/modules/networking-module/main.tf
-resource "azurerm_resource_group" "networking" {
-  name     = "rg-${var.environment}-networking"
-  location = var.location
-  tags     = var.tags
-}
-
-# Virtual Network
-resource "azurerm_virtual_network" "main" {
-  name                = "vnet-${var.environment}"
-  address_space       = ["10.0.0.0/16"]
-  location            = azurerm_resource_group.networking.location
-  resource_group_name = azurerm_resource_group.networking.name
-  tags                = var.tags
-}
-
-# Subnets for different tiers
-resource "azurerm_subnet" "app" {
-  name                 = "snet-${var.environment}-app"
-  resource_group_name  = azurerm_resource_group.networking.name
-  virtual_network_name = azurerm_virtual_network.main.name
-  address_prefixes     = ["10.0.1.0/24"]
-}
-
-resource "azurerm_subnet" "container" {
-  name                 = "snet-${var.environment}-container"
-  resource_group_name  = azurerm_resource_group.networking.name
-  virtual_network_name = azurerm_virtual_network.main.name
-  address_prefixes     = ["10.0.2.0/24"]
-  
-  delegation {
-    name = "container-delegation"
-    service_delegation {
-      name = "Microsoft.ContainerInstance/containerGroups"
+  config = {
+    organization = "my-org"
+    workspaces = {
+      name = "env-${var.environment}"
     }
   }
 }
 
-resource "azurerm_subnet" "database" {
-  name                 = "snet-${var.environment}-db"
-  resource_group_name  = azurerm_resource_group.networking.name
-  virtual_network_name = azurerm_virtual_network.main.name
-  address_prefixes     = ["10.0.3.0/24"]
+# Resource Group for application
+resource "azurerm_resource_group" "app" {
+  name     = "rg-${var.environment}-${var.app_name}"
+  location = var.location
+  tags = merge(var.tags, { 
+    Environment = var.environment
+    Application = var.app_name
+  })
 }
 
-# Network Security Group
-resource "azurerm_network_security_group" "app" {
-  name                = "nsg-${var.environment}-app"
-  location            = azurerm_resource_group.networking.location
-  resource_group_name = azurerm_resource_group.networking.name
-  tags                = var.tags
+# Web App
+module "web_app" {
+  source = "./modules/web-app"
+  
+  resource_group_name = azurerm_resource_group.app.name
+  app_name            = var.app_name
+  environment         = var.environment
+  location            = azurerm_resource_group.app.location
+  service_plan_id     = data.terraform_remote_state.environment.outputs.app_service_plan_id
+  acr_login_server    = data.terraform_remote_state.shared.outputs.acr_login_server
+  tags                = merge(var.tags, { 
+    Environment = var.environment
+    Application = var.app_name
+  })
 }
 ```
 
-### Integration Module (Event Grid, Service Bus, API Management)
+**`infra/app/outputs.tf`**
 ```hcl
-# infra/shared/modules/integration-module/main.tf
-resource "azurerm_resource_group" "integration" {
-  name     = "rg-${var.environment}-integration"
-  location = var.location
-  tags     = var.tags
+output "web_app_name" {
+  description = "Web App name"
+  value       = module.web_app.name
 }
 
-# Service Bus Namespace
-resource "azurerm_servicebus_namespace" "main" {
-  name                = "sb-${var.environment}-${random_string.suffix.result}"
-  location            = azurerm_resource_group.integration.location
-  resource_group_name = azurerm_resource_group.integration.name
-  sku                 = "Standard"
-  tags                = var.tags
+output "web_app_url" {
+  description = "Web App URL"
+  value       = module.web_app.url
 }
 
-# API Management (optional, for dev use Developer tier)
-resource "azurerm_api_management" "main" {
-  count               = var.enable_apim ? 1 : 0
-  name                = "apim-${var.environment}-${random_string.suffix.result}"
-  location            = azurerm_resource_group.integration.location
-  resource_group_name = azurerm_resource_group.integration.name
-  publisher_name      = var.publisher_name
-  publisher_email     = var.publisher_email
-  sku_name            = var.environment == "prod" ? "Standard_1" : "Developer_1"
-  tags                = var.tags
+output "web_app_default_hostname" {
+  description = "Web App default hostname"
+  value       = module.web_app.default_hostname
 }
 ```
 
-### Storage Module
+**Web App Module** (`infra/app/modules/web-app/main.tf`)
 ```hcl
-# infra/shared/modules/storage-module/main.tf
-resource "azurerm_resource_group" "storage" {
-  name     = "rg-${var.environment}-storage"
-  location = var.location
-  tags     = var.tags
+resource "random_string" "suffix" {
+  length  = 6
+  special = false
+  upper   = false
 }
 
-# Azure Container Registry
-resource "azurerm_container_registry" "main" {
-  name                = "acr${var.environment}${random_string.suffix.result}"
-  resource_group_name = azurerm_resource_group.storage.name
-  location            = azurerm_resource_group.storage.location
-  sku                 = "Standard"
-  admin_enabled       = false
-  tags                = var.tags
-}
-
-# Storage Account
-resource "azurerm_storage_account" "main" {
-  name                     = "st${var.environment}${random_string.suffix.result}"
-  resource_group_name      = azurerm_resource_group.storage.name
-  location                 = azurerm_resource_group.storage.location
-  account_tier             = "Standard"
-  account_replication_type = var.environment == "prod" ? "GRS" : "LRS"
-  tags                     = var.tags
-}
-```
-
-### Compute Module (App Service, Functions, VMs)
-```hcl
-# infra/app/modules/compute-module/main.tf
-resource "azurerm_resource_group" "compute" {
-  name     = "rg-${var.environment}-compute"
-  location = var.location
-  tags     = var.tags
-}
-
-# App Service Plan
-resource "azurerm_service_plan" "main" {
-  name                = "asp-${var.environment}"
-  resource_group_name = azurerm_resource_group.compute.name
-  location            = azurerm_resource_group.compute.location
-  os_type             = "Linux"
-  sku_name            = var.environment == "prod" ? "P1v3" : "B1"
-  tags                = var.tags
-}
-
-# Linux Web App
-resource "azurerm_linux_web_app" "api" {
-  name                = "app-${var.environment}-api-${random_string.suffix.result}"
-  resource_group_name = azurerm_resource_group.compute.name
-  location            = azurerm_service_plan.main.location
-  service_plan_id     = azurerm_service_plan.main.id
-  tags                = var.tags
-
+resource "azurerm_linux_web_app" "main" {
+  name                = "app-${var.environment}-${var.app_name}-${random_string.suffix.result}"
+  resource_group_name = var.resource_group_name
+  location            = var.location
+  service_plan_id     = var.service_plan_id
+  
   site_config {
     always_on = var.environment == "prod" ? true : false
     
     application_stack {
-      docker_image_name = "mcr.microsoft.com/dotnet/aspnet:8.0"
+      docker_image_name   = "${var.acr_login_server}/${var.app_name}:latest"
+      docker_registry_url = "https://${var.acr_login_server}"
     }
   }
 
   identity {
-    type = "UserAssigned"
-    identity_ids = [var.managed_identity_id]
+    type = "SystemAssigned"
   }
-}
-```
-
-### Container Module (Container Apps, AKS)
-```hcl
-# infra/app/modules/container-module/main.tf
-resource "azurerm_resource_group" "container" {
-  name     = "rg-${var.environment}-container"
-  location = var.location
-  tags     = var.tags
-}
-
-# Container Apps Environment
-resource "azurerm_container_app_environment" "main" {
-  name                       = "cae-${var.environment}"
-  location                   = azurerm_resource_group.container.location
-  resource_group_name        = azurerm_resource_group.container.name
-  log_analytics_workspace_id = var.log_analytics_workspace_id
-  tags                       = var.tags
-}
-
-# Container App
-resource "azurerm_container_app" "api" {
-  name                         = "ca-${var.environment}-api"
-  container_app_environment_id = azurerm_container_app_environment.main.id
-  resource_group_name          = azurerm_resource_group.container.name
-  revision_mode                = "Single"
-  tags                         = var.tags
-
-  template {
-    container {
-      name   = "api"
-      image  = "mcr.microsoft.com/dotnet/aspnet:8.0"
-      cpu    = 0.25
-      memory = "0.5Gi"
-    }
-  }
-
-  ingress {
-    external_enabled = true
-    target_port      = 80
-    traffic_weight {
-      percentage      = 100
-      latest_revision = true
-    }
-  }
-}
-```
-
-### Database Module
-```hcl
-# infra/app/modules/database-module/main.tf
-resource "azurerm_resource_group" "database" {
-  name     = "rg-${var.environment}-database"
-  location = var.location
-  tags     = var.tags
-}
-
-# PostgreSQL Flexible Server
-resource "azurerm_postgresql_flexible_server" "main" {
-  name                   = "psql-${var.environment}-${random_string.suffix.result}"
-  resource_group_name    = azurerm_resource_group.database.name
-  location               = azurerm_resource_group.database.location
-  version                = "15"
-  administrator_login    = "psqladmin"
-  administrator_password = random_password.db_password.result
-  
-  storage_mb   = var.environment == "prod" ? 32768 : 32768
-  sku_name     = var.environment == "prod" ? "GP_Standard_D2s_v3" : "B_Standard_B1ms"
   
   tags = var.tags
 }
 
-resource "azurerm_postgresql_flexible_server_database" "main" {
-  name      = var.database_name
-  server_id = azurerm_postgresql_flexible_server.main.id
-  collation = "en_US.utf8"
-  charset   = "utf8"
+# Get ACR ID for role assignment
+data "azurerm_container_registry" "acr" {
+  name                = split(".", var.acr_login_server)[0]
+  resource_group_name = "rg-shared-services"
+}
+
+# Grant Web App access to pull images from ACR
+resource "azurerm_role_assignment" "acr_pull" {
+  principal_id                     = azurerm_linux_web_app.main.identity[0].principal_id
+  role_definition_name             = "AcrPull"
+  scope                            = data.azurerm_container_registry.acr.id
+  skip_service_principal_aad_check = true
 }
 ```
 
-## Publishing Modules to Terraform Cloud 📦
-
-Once you've built your modules, you can publish them to Terraform Cloud's private registry for reuse across projects.
-
-### Step 1: Organize Module Repository
-
-Create a separate Git repository for each module:
-
-```
-terraform-azure-networking/
-├── main.tf
-├── variables.tf
-├── outputs.tf
-├── README.md
-└── examples/
-    └── complete/
-        └── main.tf
-```
-
-### Step 2: Tag Your Module
-
-Terraform Cloud uses Git tags for versioning:
-
-```bash
-cd terraform-azure-networking
-
-# Create a version tag
-git tag -a "v1.0.0" -m "Initial release"
-git push origin v1.0.0
-```
-
-### Step 3: Connect to Terraform Cloud
-
-In Terraform Cloud UI:
-
-1. Navigate to **Registry** → **Publish** → **Module**
-2. Select your VCS provider (GitHub)
-3. Choose the repository (e.g., `terraform-azure-networking`)
-4. Click **Publish Module**
-
-### Step 4: Use Published Modules
-
-Now reference your modules from the private registry:
-
+**Web App Module Variables** (`infra/app/modules/web-app/variables.tf`)
 ```hcl
-module "networking" {
-  source  = "app.terraform.io/my-org/networking/azure"
-  version = "~> 1.0"
-  
-  environment = var.environment
-  location    = var.location
-  tags        = var.tags
-}
-```
-
-**Module Naming Convention**: `terraform-<PROVIDER>-<NAME>`
-- `terraform-azure-networking`
-- `terraform-azure-identity`
-- `terraform-azure-integration`
-
-### Step 5: Module Best Practices
-
-**Complete Variables File**
-```hcl
-# variables.tf
-variable "environment" {
-  description = "Environment name (dev, staging, prod)"
+variable "resource_group_name" {
+  description = "Resource group name"
   type        = string
-  validation {
-    condition     = contains(["dev", "staging", "prod"], var.environment)
-    error_message = "Environment must be dev, staging, or prod."
-  }
+}
+
+variable "app_name" {
+  description = "Application name"
+  type        = string
+}
+
+variable "environment" {
+  description = "Environment name"
+  type        = string
 }
 
 variable "location" {
   description = "Azure region"
   type        = string
-  default     = "eastus"
+}
+
+variable "service_plan_id" {
+  description = "App Service Plan ID"
+  type        = string
+}
+
+variable "acr_login_server" {
+  description = "Container Registry login server"
+  type        = string
 }
 
 variable "tags" {
-  description = "Tags to apply to resources"
+  description = "Resource tags"
   type        = map(string)
-  default     = {}
 }
 ```
 
-**Complete Outputs File**
+**Web App Module Outputs** (`infra/app/modules/web-app/outputs.tf`)
 ```hcl
-# outputs.tf
-output "vnet_id" {
-  description = "Virtual Network ID"
-  value       = azurerm_virtual_network.main.id
+output "id" {
+  description = "Web App ID"
+  value       = azurerm_linux_web_app.main.id
 }
 
-output "subnet_ids" {
-  description = "Map of subnet names to IDs"
-  value = {
-    app       = azurerm_subnet.app.id
-    container = azurerm_subnet.container.id
-    database  = azurerm_subnet.database.id
-  }
+output "name" {
+  description = "Web App name"
+  value       = azurerm_linux_web_app.main.name
 }
-```
 
-**Comprehensive README**
-```markdown
-# Azure Networking Module
+output "default_hostname" {
+  description = "Web App default hostname"
+  value       = azurerm_linux_web_app.main.default_hostname
+}
 
-Provisions Azure Virtual Network with subnets for app, container, and database tiers.
-
-## Usage
-
-```hcl
-module "networking" {
-  source  = "app.terraform.io/my-org/networking/azure"
-  version = "~> 1.0"
-  
-  environment = "dev"
-  location    = "eastus"
-  
-  tags = {
-    Project   = "Platform"
-    ManagedBy = "Terraform"
-  }
+output "url" {
+  description = "Web App URL"
+  value       = "https://${azurerm_linux_web_app.main.default_hostname}"
 }
 ```
 
-## Inputs
+**Deploying Application Infrastructure**
 
-| Name | Description | Type | Default | Required |
-|------|-------------|------|---------|----------|
-| environment | Environment name | string | n/a | yes |
-| location | Azure region | string | eastus | no |
-
-## Outputs
-
-| Name | Description |
-|------|-------------|
-| vnet_id | Virtual Network ID |
-| subnet_ids | Map of subnet IDs |
-```
-
-## Workspace Management 🔄
-
-### Creating Workspaces via CLI
-
-You can create workspaces programmatically:
+Deploy the application layer (requires both shared services and environment to be deployed):
 
 ```bash
-# Create workspace
-cat > workspace-dev.json <<EOF
-{
-  "data": {
-    "attributes": {
-      "name": "app-dev",
-      "resource-count": 0,
-      "terraform-version": "1.6.0",
-      "working-directory": "infra/app",
-      "execution-mode": "remote",
-      "vcs-repo": {
-        "identifier": "my-org/platform-infrastructure",
-        "branch": "main",
-        "oauth-token-id": "ot-XXXXX"
-      }
-    },
-    "type": "workspaces"
-  }
-}
-EOF
-
-curl \
-  --header "Authorization: Bearer $TF_CLOUD_TOKEN" \
-  --header "Content-Type: application/vnd.api+json" \
-  --request POST \
-  --data @workspace-dev.json \
-  https://app.terraform.io/api/v2/organizations/$TF_CLOUD_ORG/workspaces
-```
-
-### Workspace Variables via CLI
-
-Set variables programmatically:
-
-```bash
-# Set environment variable
-cat > variable.json <<EOF
-{
-  "data": {
-    "type": "vars",
-    "attributes": {
-      "key": "ARM_CLIENT_ID",
-      "value": "$CLIENT_ID",
-      "category": "env",
-      "hcl": false,
-      "sensitive": false
-    }
-  }
-}
-EOF
-
-curl \
-  --header "Authorization: Bearer $TF_CLOUD_TOKEN" \
-  --header "Content-Type: application/vnd.api+json" \
-  --request POST \
-  --data @variable.json \
-  https://app.terraform.io/api/v2/workspaces/$WORKSPACE_ID/vars
-```
-
-## Running Terraform 🚀
-
-### Via Terraform Cloud UI
-
-1. Navigate to workspace
-2. Click **Actions** → **Start new run**
-3. Add a message describing the change
-4. Review the plan
-5. Click **Confirm & Apply**
-
-### Via CLI
-
-```bash
-cd infra/shared
-
-# Initialize
+cd ../app
 terraform init
+terraform plan -var="environment=test" -var="app_name=myapp"
+terraform apply -var="environment=test" -var="app_name=myapp"  # Add --auto-approve to skip confirmation prompt
 
-# Plan
-terraform plan -out=tfplan
-
-# Apply (triggers remote execution)
-terraform apply tfplan
+# Get the app URL
+APP_URL=$(terraform output -raw web_app_url)
+echo "App deployed at: $APP_URL"
 ```
-
-### Via VCS Integration
-
-When connected to GitHub:
-
-1. Push code to your repository
-2. Terraform Cloud automatically triggers a plan
-3. Review the plan in a PR comment
-4. Merge PR to trigger apply (if auto-apply enabled)
-
-## Complete Example 🎯
-
-Let's put it all together with a complete example:
-
-**Directory Structure**
-```
-platform-infrastructure/
-├── infra/
-│   ├── shared/
-│   │   ├── main.tf
-│   │   ├── variables.tf
-│   │   ├── outputs.tf
-│   │   ├── terraform.tf
-│   │   └── modules/
-│   │       ├── identity-module/
-│   │       ├── networking-module/
-│   │       ├── integration-module/
-│   │       └── storage-module/
-│   └── app/
-│       ├── main.tf
-│       ├── variables.tf
-│       ├── outputs.tf
-│       ├── terraform.tf
-│       └── modules/
-│           ├── compute-module/
-│           ├── container-module/
-│           └── database-module/
-└── .github/
-    └── workflows/
-        └── terraform-ci.yml
-```
-
-**GitHub Actions Workflow** (`.github/workflows/terraform-ci.yml`)
-```yaml
-name: Terraform CI
-
-on:
-  pull_request:
-    paths:
-      - 'infra/**'
-  push:
-    branches:
-      - main
-    paths:
-      - 'infra/**'
-
-jobs:
-  terraform:
-    name: Terraform Plan
-    runs-on: ubuntu-latest
-    
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          cli_config_credentials_token: ${{ secrets.TF_API_TOKEN }}
-      
-      - name: Terraform Format
-        run: terraform fmt -check -recursive infra/
-      
-      - name: Terraform Init - Shared
-        run: |
-          cd infra/shared
-          terraform init
-      
-      - name: Terraform Validate - Shared
-        run: |
-          cd infra/shared
-          terraform validate
-      
-      - name: Terraform Init - App
-        run: |
-          cd infra/app
-          terraform init
-      
-      - name: Terraform Validate - App
-        run: |
-          cd infra/app
-          terraform validate
-```
-
-## Benefits of This Approach 🎁
-
-**Security**
-- ✅ No stored secrets - OIDC authentication
-- ✅ Centralized credential management
-- ✅ Audit logging
-
-**Collaboration**
-- ✅ Team state management without conflicts
-- ✅ VCS integration for code review
-- ✅ Automated planning on PRs
-
-**Standardization**
-- ✅ Reusable modules based on Azure patterns
-- ✅ Consistent resource naming
-- ✅ Private registry for sharing
-
-**Scalability**
-- ✅ Separate workspaces per environment
-- ✅ Parallel execution across projects
-- ✅ Cost tracking per workspace
 
 ## Common Patterns 📋
 
@@ -991,63 +1162,126 @@ Use workspace variables for environment-specific values:
 # In Terraform Cloud, set these as Terraform variables:
 # workspace: app-dev
 environment = "dev"
-location    = "eastus"
+location    = "westus2"
 sku_tier    = "Basic"
 
 # workspace: app-prod
 environment = "prod"
-location    = "eastus2"
+location    = "westus2"
 sku_tier    = "Standard"
 ```
 
-### Cross-Environment Data Sharing
+### Cross-Workspace Data Sharing
 
-Use `terraform_remote_state` to share data:
+Use `terraform_remote_state` to reference outputs from other workspaces:
 
 ```hcl
-# App infrastructure needs networking info from shared
+# App infrastructure needs data from shared services and environment
 data "terraform_remote_state" "shared" {
   backend = "remote"
   
   config = {
     organization = "my-org"
     workspaces = {
-      name = "shared-services-${var.environment}"
+      name = "shared-services"
     }
   }
 }
 
-# Use shared outputs
-subnet_id = data.terraform_remote_state.shared.outputs.app_subnet_id
+data "terraform_remote_state" "environment" {
+  backend = "remote"
+  
+  config = {
+    organization = "my-org"
+    workspaces = {
+      name = "env-${var.environment}"
+    }
+  }
+}
+
+# Use outputs from other workspaces
+acr_id           = data.terraform_remote_state.shared.outputs.acr_id
+app_service_plan = data.terraform_remote_state.environment.outputs.app_service_plan_id
+front_door_id    = data.terraform_remote_state.environment.outputs.front_door_id
 ```
 
-### Module Composition
-
-Build higher-level modules from lower-level ones:
-
-```hcl
-# infra/shared/modules/complete-platform/main.tf
-module "networking" {
-  source = "app.terraform.io/my-org/networking/azure"
-  version = "~> 1.0"
-  # ...
-}
-
-module "identity" {
-  source = "app.terraform.io/my-org/identity/azure"
-  version = "~> 1.0"
-  # ...
-}
-
-module "integration" {
-  source = "app.terraform.io/my-org/integration/azure"
-  version = "~> 1.0"
-  vnet_id = module.networking.vnet_id
-  # ...
-}
-```
+This pattern creates clear dependencies:
+- **Apps** depend on **Environment** and **Shared Services**
+- **Environment** depends on **Shared Services**
+- **Shared Services** has no dependencies (deployed first)
 
 ## Troubleshooting 🔧
+
+### Missing Variable Configuration
+
+If you get this error during `terraform plan`:
+
+```
+Error: unable to build authorizer for Resource Manager API: could not configure AzureCli Authorizer: 
+could not parse Azure CLI version: launching Azure CLI: exec: "az": executable file not found in $PATH
+```
+
+**This means your Terraform Cloud environment variables are not configured correctly.** Terraform is trying to fall back to Azure CLI authentication because it can't find the OIDC credentials.
+
+**Fix:**
+1. Go to Terraform Cloud → **Settings** → **Variable Sets**
+2. Verify your variable set has these **Environment Variables** (not Terraform variables):
+   - `ARM_SUBSCRIPTION_ID` = Your Azure subscription ID
+   - `ARM_TENANT_ID` = Your tenant ID
+   - `TFC_AZURE_PROVIDER_AUTH` = `"true"` (as a string)
+   - `TFC_AZURE_RUN_CLIENT_ID` = Your service principal client ID
+3. Ensure the variable set is applied to your project or workspace
+4. Run `terraform plan` again
+
+**Note**: These must be **Environment Variables**, not Terraform variables. The category must be set to "env" in Terraform Cloud.
+
+### Remote State Access Denied
+
+If you get this error when trying to access remote state from another workspace:
+
+```
+Error: Error loading state: state data in S3 does not have the expected content.
+
+This Terraform run is not authorized to read the state of the workspace 'shared-services'.
+Most commonly, this is required when using the terraform_remote_state data source.
+To allow this access, 'shared-services' must configure this workspace ('env-test')
+as an authorized remote state consumer.
+```
+
+**This means the workspace you're trying to read state from hasn't granted your workspace permission to access its state.**
+
+**Fix:**
+
+1. Go to Terraform Cloud → Navigate to the **source workspace** (e.g., `shared-services`)
+2. Go to **Settings** → **General**
+3. Scroll down to **Remote state sharing**
+4. Select **Share with specific workspaces**
+5. Add the workspace(s) that need access (e.g., `env-test`, `app-test`)
+6. Click **Save settings**
+7. Run `terraform plan` again in your consuming workspace
+
+**For our three-tier architecture, configure these permissions:**
+
+- **shared-services** workspace: Grant access to `env-test` and `app-test`
+- **env-test** workspace: Grant access to `app-test`
+
+**Example configuration:**
+```
+Workspace: shared-services
+├─ Remote state sharing: Share with specific workspaces
+├─ Allowed workspaces:
+│  ├─ env-test      ✓
+│  └─ app-test      ✓
+
+Workspace: env-test
+├─ Remote state sharing: Share with specific workspaces
+├─ Allowed workspaces:
+│  └─ app-test      ✓
+```
+
+**Alternative: Global sharing (not recommended for production):**
+
+You can also choose **Share with all workspaces in this organization**, but this is less secure as it allows any workspace to read the state. Use specific workspace sharing for better security.
 
 ### OIDC Authentication Issues
 
@@ -1062,10 +1296,10 @@ az ad app federated-credential list --id $CLIENT_ID
 
 # Verify workspace variables
 # In Terraform Cloud UI, check:
-# - ARM_CLIENT_ID is set
 # - ARM_SUBSCRIPTION_ID is set
 # - ARM_TENANT_ID is set
-# - ARM_USE_OIDC is "true"
+# - TFC_AZURE_PROVIDER_AUTH is "true"
+# - TFC_AZURE_RUN_CLIENT_ID is set
 ```
 
 ### State Locking Issues
@@ -1078,27 +1312,49 @@ If state is locked:
 terraform force-unlock <LOCK_ID>
 ```
 
-### Module Not Found
+## Cleaning Up Resources 🧹
 
-If modules aren't found:
+**Important**: If you're just testing this setup and don't want to incur ongoing Azure charges, make sure to destroy the infrastructure when you're done. Destroy in **reverse order** of deployment:
 
 ```bash
-# Ensure module is published with proper tag
-git tag -l
+# Step 1: Destroy application infrastructure first
+cd infra/app
+terraform destroy -var="environment=test" -var="app_name=myapp" --auto-approve
 
-# Check module name format: terraform-<PROVIDER>-<NAME>
-# Check version constraint in module source
+# Step 2: Destroy environment infrastructure
+cd ../environment
+terraform destroy -var="environment=test" --auto-approve
+
+# Step 3: Destroy shared services last
+cd ../shared-services
+terraform destroy --auto-approve
 ```
+
+**Why destroy in reverse order?**
+- The app layer depends on the environment layer (App Service Plan)
+- The environment layer depends on shared services (Container Registry)
+- Destroying in reverse ensures dependencies are removed before their dependencies
+- Terraform will error if you try to destroy a resource that's still being referenced
+
+**Cost considerations:**
+- **Container Registry (Basic SKU)**: ~$5/month
+- **App Service Plan (P0v3)**: ~$58/month
+- **Web App**: Included with App Service Plan
+
+Total estimated cost for this tutorial setup: ~$63/month if left running.
 
 ## Next Steps 🚀
 
 We've now set up:
 - ✅ Terraform Cloud with secure Azure authentication
-- ✅ Organized infrastructure code (shared vs. app)
-- ✅ Reusable modules based on Azure Charts patterns
-- ✅ Private module registry
+- ✅ Three-tier infrastructure organization (shared-services, environment, app)
+- ✅ CLI-driven workflows for better developer experience
 
-In the next post, we'll explore **Azure DevOps Pipelines** to automate infrastructure deployment and integrate with our application CI/CD workflows.
+**Coming up in the series:**
+- **Publishing Terraform Modules** - Extracting our local modules into separate Git repositories and publishing them to Terraform Cloud's private registry for reuse across projects
+- **Complete Platform Infrastructure** - Building out the full infrastructure with all the modules (Key Vault, Front Door, API Management, Application Insights, and more) using our published modules
+- **Azure Environment Architecture** - Deep dive into our three-tier resource organization strategy (shared services, environment resources, and application workspaces) and why this pattern works well for multi-environment platforms
+- **Azure DevOps Pipelines** - Automating infrastructure deployment and application CI/CD workflows
 
 ## Resources 📚
 

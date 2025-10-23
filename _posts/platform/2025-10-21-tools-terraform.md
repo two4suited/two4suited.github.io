@@ -1,6 +1,6 @@
 ---
 title: "Building a Modern Development Platform: Terraform & Terraform Cloud for Azure Infrastructure 🏗️"
-date: 2025-10-21T06:00:00-07:00
+date: 2025-10-21T05:00:00-07:00
 draft: false
 categories: ["platform","terraform","iac","azure","infrastructure","terraform-cloud"]
 description: "Setting up Terraform Cloud with Azure service principals, building reusable modules based on Azure's resource organization patterns, and publishing to a private registry"

@@ -76,8 +76,6 @@ components:
 
 ## Why Would You Use TypeSpec? 💡
 
-## Why Would You Use TypeSpec? 💡
-
 ### 1. **Contract-First Development** 📋
 
 Traditional development often follows this painful pattern:
@@ -207,7 +205,7 @@ TypeSpec integrates seamlessly with:
 
 Without TypeSpec, API development typically follows one of two problematic approaches:
 
-### Approach 1: Hand-Written OpenAPI Specifications
+### Approach 1: Hand-Written OpenAPI Specifications 📝
 **The Process:**
 - Write OpenAPI YAML/JSON files manually
 - Struggle with verbose, repetitive syntax
@@ -219,7 +217,7 @@ Without TypeSpec, API development typically follows one of two problematic appro
 - **Maintenance Nightmare** - Complex specifications become unwieldy
 - **No Validation** - Missing validation rules and inconsistent patterns
 
-### Approach 2: Code-First with Manual Export/Import
+### Approach 2: Code-First with Manual Export/Import 🔄
 **The Process:**
 - Write API implementation first (ASP.NET Core, FastAPI, etc.)
 - Export OpenAPI spec from running application
@@ -233,7 +231,7 @@ Without TypeSpec, API development typically follows one of two problematic appro
 - **Coordination Overhead** - Constant communication between teams about API changes
 - **Late Discovery** - Integration issues found after implementation
 
-### Common Pain Points Across Both Approaches
+### Common Pain Points Across Both Approaches 😩
 **Team Coordination**
 - Frontend and backend models diverge over time
 - Manual client SDK updates required for every change
@@ -321,13 +319,14 @@ From this single definition:
 
 Let's get TypeSpec set up in our development environment. We'll need Node.js (which we already have in our Aspire dev container) and the TypeSpec tools.
 
-### Prerequisites
-From our previous Aspire tutorial, we already have:
-- Dev container with Node.js installed
-- Our weather application running
-- VS Code with proper extensions
+### Prerequisites 📦
 
-### Install TypeSpec CLI and Compiler
+From our previous Aspire tutorial, we already have:
+- 🐳 Dev container with Node.js installed
+- 🌤️ Our weather application running
+- 🔧 VS Code with proper extensions
+
+### Install TypeSpec CLI and Compiler 💻
 
 ```bash
 # Install TypeSpec globally
@@ -352,7 +351,7 @@ tsp --version
 which tsp
 ```
 
-### Install VS Code Extension
+### Install VS Code Extension 🎨
 
 The TypeSpec VS Code extension provides syntax highlighting, IntelliSense, and real-time validation:
 
@@ -365,7 +364,7 @@ The TypeSpec VS Code extension provides syntax highlighting, IntelliSense, and r
 
 Let's add TypeSpec to our existing weather application from the Aspire series. We'll create a new TypeSpec project that will define our API contracts.
 
-### Step 1: Initialize TypeSpec Project
+### Step 1: Initialize TypeSpec Project 🚀
 
 Navigate to your weather app repository and create a TypeSpec project:
 
@@ -392,7 +391,7 @@ WeatherApp.Typespec/
 └── node_modules/
 ```
 
-### Step 2: Configure TypeSpec Project
+### Step 2: Configure TypeSpec Project 🔧
 
 Update `tspconfig.yaml` to configure our emitters (code generators):
 
@@ -633,14 +632,14 @@ builder.Build().Run();
 
 Now let's create a TypeSpec emitter that generates .NET controllers from our specification.
 
-### Step 1: Install ASP.NET Core Emitter
+### Step 1: Install ASP.NET Core Emitter 📦
 
 ```bash
 # From WeatherApp.Typespec directory
 npm install @typespec/http-server-csharp
 ```
 
-### Step 2: Update TypeSpec Configuration
+### Step 2: Update TypeSpec Configuration ⚙️
 
 Update `tspconfig.yaml` to include the C# emitter:
 
@@ -662,7 +661,7 @@ options:
 - **`emit-mocks: none`** - Disables mock generation, we only want the models and interfaces
 - This approach integrates generated code directly into your existing project structure
 
-### Step 3: Generate Controllers
+### Step 3: Generate Controllers 🤖
 
 ```bash
 # Regenerate with new emitter
@@ -685,7 +684,7 @@ src/
         └── openapi.yaml
 ```
 
-### Step 4: Clean Up Data Project
+### Step 4: Clean Up Data Project 🧹
 
 Now that we're using TypeSpec-generated code, we can remove some files from the Data project that are no longer needed:
 
@@ -702,7 +701,7 @@ The generated C# server code from TypeSpec includes:
 - `WeatherContext.cs` - Entity Framework DbContext for database access
 - `WeatherForecast.cs` - Can be replaced with the generated model or kept for EF-specific configurations
 
-### Step 5: Update API to Use Generated Models
+### Step 5: Update API to Use Generated Models 📦
 
 Update your `WeatherApp.Api/Program.cs` to use the generated models:
 
@@ -737,7 +736,7 @@ app.Run();
 - **`AddOpenApi()`** - Uses built-in .NET OpenAPI support instead of Swashbuckle
 - **Simplified** - No manual Swagger configuration, leveraging Aspire and generated code
 
-### Step 6: Implement the Generated Interface
+### Step 6: Implement the Generated Interface 🔌
 
 Create `WeatherApp.Api/WeatherService.cs` to implement the TypeSpec-generated interface:
 
@@ -792,7 +791,7 @@ public class WeatherService : IWeatherForecasts
 - **Database Model** (`WeatherApp.Data.WeatherForecast`) - Entity Framework entity with database-specific attributes
 - This separation allows the API contract to evolve independently from database schema
 
-### Step 7: Update Seed Project
+### Step 7: Update Seed Project 🌱
 
 The seed project can use Entity Framework directly without needing the TypeSpec-generated service layer. Update `WeatherApp.Seed/Program.cs`:
 
@@ -919,7 +918,7 @@ This demonstrates a key architectural benefit: internal tools (like seeders) can
 
 ## Testing the Complete Setup 🧪
 
-### Step 1: Generate and Run
+### Step 1: Generate and Run 🚀
 
 ```bash
 # Generate all contracts and code
@@ -931,7 +930,7 @@ cd ..
 aspire run
 ```
 
-### Step 2: View Results
+### Step 2: View Results 👁️
 
 Your Aspire dashboard now shows:
 - **Weather API** - Your .NET API with generated controllers
@@ -939,7 +938,7 @@ Your Aspire dashboard now shows:
 - **Swagger UI** - Interactive API documentation at http://localhost:8080
 - **Cosmos DB** - Database with seeded data
 
-### Step 3: Test the API
+### Step 3: Test the API ✅
 
 Visit the Swagger UI to:
 - View complete API documentation

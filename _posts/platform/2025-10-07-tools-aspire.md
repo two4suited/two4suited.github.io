@@ -43,17 +43,17 @@ That's it! The Dev Container will handle installing .NET 9 SDK, Aspire workload,
 
 ## Creating the Aspire Solution from Template 🏗️
 
-### Step 1: Create Repository from Aspire Dev Container Template
+### Step 1: Create Repository from Aspire Dev Container Template 📦
 
 Instead of manually installing dependencies, we'll use Microsoft's official Aspire Dev Container template. This gives us a fully configured development environment in a container:
 
-1. Navigate to the [Aspire Dev Container template repository](https://github.com/dotnet/aspire-devcontainer)
-2. Click **"Use this template"** → **"Create a new repository"**
-3. Name your repository `aspire-weather-app`
-4. Make it public or private (your choice)
-5. Click **"Create repository"**
+1. 🔗 Navigate to the [Aspire Dev Container template repository](https://github.com/dotnet/aspire-devcontainer)
+2. 📋 Click **"Use this template"** → **"Create a new repository"**
+3. 📝 Name your repository `aspire-weather-app`
+4. 🔐 Make it public or private (your choice)
+5. ✅ Click **"Create repository"**
 
-### Step 2: Clone and Open in Dev Container
+### Step 2: Clone and Open in Dev Container 🐳
 
 Clone your new repository locally:
 
@@ -68,28 +68,28 @@ VS Code will detect the `.devcontainer/devcontainer.json` file and prompt you to
 ![Reopen in Container prompt](https://learn.microsoft.com/en-us/dotnet/aspire/docs/get-started/media/reopen-in-container.png)
 
 The first time you do this, Docker will build the dev container. This takes a few minutes as it:
-- Pulls the .NET 9 dev container image
-- Installs the Aspire workload
-- Configures Docker-in-Docker (for running Cosmos DB and other containers)
-- Installs VS Code extensions (C# Dev Kit, Docker, GitHub Copilot)
-- Sets up HTTPS certificates
+- 🖼️ Pulls the .NET 9 dev container image
+- 📦 Installs the Aspire workload
+- 🐳 Configures Docker-in-Docker (for running Cosmos DB and other containers)
+- 🔧 Installs VS Code extensions (C# Dev Kit, Docker, GitHub Copilot)
+- 🔐 Sets up HTTPS certificates
 
 Grab a coffee ☕ - subsequent opens will be much faster!
 
-### Step 3: Understanding the Dev Container Setup
+### Step 3: Understanding the Dev Container Setup 🔍
 
 The Aspire dev container template automatically configures everything you need for Aspire development:
 
 **Everything is Pre-Installed!** 🎉
-- .NET 9 SDK ✅
-- Aspire workload ✅  
-- Aspire project templates ✅
-- Aspire CLI ✅
-- HTTPS certificates ✅
+- 🖥️ .NET 9 SDK ✅
+- 📦 Aspire workload ✅  
+- 📋 Aspire project templates ✅
+- 🔧 Aspire CLI ✅
+- 🔐 HTTPS certificates ✅
 
 > **For complete dev container configuration details** (including Node.js and Docker setup for full-stack applications), see the official [Aspire Dev Containers documentation](https://learn.microsoft.com/en-us/dotnet/aspire/get-started/dev-containers).
 
-### Step 4: Create Aspire Projects Using CLI Template Selection
+### Step 4: Create Aspire Projects Using CLI Template Selection ✨
 
 We'll use the Aspire CLI's interactive experience to create our projects:
 
@@ -99,7 +99,7 @@ aspire new
 
 The Aspire CLI will guide you through the setup:
 
-1. **Template Selection Menu:**
+1. **Template Selection Menu:** 📋
    ```
    Select a project template:
    > Starter template
@@ -109,27 +109,27 @@ The Aspire CLI will guide you through the setup:
      Integration tests
    ```
 
-2. **Select "AppHost and service defaults"** - this creates both projects we need in one step
+2. **Select "AppHost and service defaults"** 🎯 - this creates both projects we need in one step
 
-3. **Project Name:** When prompted, enter `WeatherApp`
+3. **Project Name:** 📝 When prompted, enter `WeatherApp`
 
-4. **Output Location:** When prompted for the output directory, enter `src` (this will create the `src` directory for you)
+4. **Output Location:** 📂 When prompted for the output directory, enter `src` (this will create the `src` directory for you)
 
 This creates both essential components:
-- **AppHost** - The orchestrator that manages all our services
-- **Service defaults** - Shared configurations for telemetry, health checks, and resilience
+- 🏗️ **AppHost** - The orchestrator that manages all our services
+- 🔧 **Service defaults** - Shared configurations for telemetry, health checks, and resilience
 
 This will create in the `src/` directory:
-- `WeatherApp.AppHost/` - Orchestration project
-- `WeatherApp.ServiceDefaults/` - Shared configuration project  
-- `WeatherApp.sln` - Solution file tying them together
+- 📦 `WeatherApp.AppHost/` - Orchestration project
+- ⚙️ `WeatherApp.ServiceDefaults/` - Shared configuration project  
+- 🗂️ `WeatherApp.sln` - Solution file tying them together
 
-**Why "AppHost and service defaults"?**
+**Why "AppHost and service defaults"?** 🤔
 This template gives us:
-- Clean foundation without sample projects (unlike Starter template)
-- Both essential Aspire components in one step
-- Proper project references already configured
-- Ready to add our own API and frontend projects
+- ✨ Clean foundation without sample projects (unlike Starter template)
+- 🎯 Both essential Aspire components in one step
+- ✅ Proper project references already configured
+- 🚀 Ready to add our own API and frontend projects
 
 Let's explore the structure that was created:
 
@@ -145,7 +145,7 @@ WeatherApp.ServiceDefaults/ # Shared configuration
 WeatherApp.sln              # Solution file
 ```
 
-### Step 5: Understanding the AppHost
+### Step 5: Understanding the AppHost 🧠
 
 Open `src/WeatherApp.AppHost/AppHost.cs`. The AppHost template has a minimal setup:
 
@@ -158,16 +158,16 @@ builder.Build().Run();
 ```
 
 This is the heart of Aspire orchestration. Every service, database, and dependency will be defined here. As we add projects, we'll use methods like:
-- `builder.AddProject<>()` to add .NET projects
-- `builder.AddNpmApp()` to add Node.js/React apps
-- `builder.AddAzureCosmosDB()` to add databases
-- `.WithReference()` to set up service-to-service communication
+- 🔌 `builder.AddProject<>()` to add .NET projects
+- 📦 `builder.AddNpmApp()` to add Node.js/React apps
+- 🗄️ `builder.AddAzureCosmosDB()` to add databases
+- 🔗 `.WithReference()` to set up service-to-service communication
 
 **WeatherApp.ServiceDefaults** contains extension methods that wire up:
-- OpenTelemetry for distributed tracing
-- Health check endpoints
-- Service discovery
-- Resilience patterns (retry, circuit breaker, etc.)
+- 📊 OpenTelemetry for distributed tracing
+- 💚 Health check endpoints
+- 🔍 Service discovery
+- 🛡️ Resilience patterns (retry, circuit breaker, etc.)
 
 ## Running the Basic Aspire Dashboard 🎛️
 
@@ -177,12 +177,12 @@ Before we add any services, let's see Aspire in action with just the basic setup
 aspire run
 ```
 
-**What `aspire run` does:**
-- Automatically searches for and finds the AppHost project in the current directory and subdirectories
-- Creates configuration in the `.aspire` folder with `settings.json` for project paths
-- Builds the AppHost project
-- Starts the Aspire Dashboard (even with no services yet)
-- Shows the foundation for our distributed application
+**What `aspire run` does:** 🤖
+- 🔍 Automatically searches for and finds the AppHost project in the current directory and subdirectories
+- 📝 Creates configuration in the `.aspire` folder with `settings.json` for project paths
+- 🔨 Builds the AppHost project
+- 🚀 Starts the Aspire Dashboard (even with no services yet)
+- 📊 Shows the foundation for our distributed application
 
 The output will show something like:
 ```
@@ -190,16 +190,16 @@ Dashboard:  https://localhost:17178/login?t=17f974bf68e390b0d4548af8d7e38b65
     Logs:  /home/vscode/.aspire/cli/logs/apphost-1295-2025-07-14-18-16-13.log
 ```
 
-**Certificate Warning**: The first time you access the dashboard URL, you'll see a certificate error in your browser. This is expected behavior in the dev container environment. 
+**Certificate Warning**: ⚠️ The first time you access the dashboard URL, you'll see a certificate error in your browser. This is expected behavior in the dev container environment. 
 
 > **For complete details on handling certificate warnings**, see the [Aspire Dev Containers documentation](https://learn.microsoft.com/en-us/dotnet/aspire/get-started/dev-containers#quick-start-using-template-repository).
 
 Once you access the dashboard, you'll see it's ready and waiting for services! The dashboard shows:
-- **Resources** - Currently empty, but ready for our services
-- **Console Logs** - Dashboard and AppHost logs
-- **Structured Logs** - Searchable logs with correlation IDs
-- **Traces** - Ready for distributed tracing
-- **Metrics** - Performance monitoring ready
+- 📦 **Resources** - Currently empty, but ready for our services
+- 📝 **Console Logs** - Dashboard and AppHost logs
+- 🔍 **Structured Logs** - Searchable logs with correlation IDs
+- 🔗 **Traces** - Ready for distributed tracing
+- 📊 **Metrics** - Performance monitoring ready
 
 **Stop the Application**: Press <kbd>Ctrl</kbd>+<kbd>C</kbd> in the terminal to stop Aspire when you're ready to continue.
 
@@ -209,7 +209,7 @@ Now let's add some services to see the real power of Aspire orchestration!
 
 The starter template includes sample projects, but let's create our own clean weather API from scratch.
 
-### Step 6: Create the API Project
+### Step 6: Create the API Project 💾
 
 From the terminal in VS Code (inside the dev container):
 
@@ -220,7 +220,7 @@ dotnet new webapi -n WeatherApp.Api
 dotnet sln WeatherApp.sln add WeatherApp.Api/WeatherApp.Api.csproj
 ```
 
-### Step 7: Add Aspire Service Defaults
+### Step 7: Add Aspire Service Defaults 🔧
 
 Add a project reference to the ServiceDefaults project in the API project:
 
@@ -238,7 +238,7 @@ builder.AddServiceDefaults();
 
 This integrates your API with Aspire's telemetry, health checks, service discovery, and resilience patterns from the ServiceDefaults project.
 
-### Step 8: Register the API in the AppHost
+### Step 8: Register the API in the AppHost 📍
 
 First, add a project reference from AppHost to the API:
 
@@ -259,7 +259,7 @@ builder.Build().Run();
 
 ## Adding a React Frontend ⚛️
 
-### Step 9: Create the React App
+### Step 9: Create the React App 🎨
 
 The dev container already has Node.js installed, so we can create our React app with Vite:
 
@@ -270,7 +270,7 @@ cd WeatherApp.Web
 npm install
 ```
 
-### Step 10: Add the React App to Aspire
+### Step 10: Add the React App to Aspire 🔗
 
 First, install the Aspire Community Toolkit for Node.js extensions:
 
@@ -303,7 +303,7 @@ Key features of this integration:
 
 ## Running with Services Added 🚀
 
-### Step 11: Launch the Complete Application
+### Step 11: Launch the Complete Application 🎯
 
 Now let's run our application with all services configured:
 
@@ -321,7 +321,7 @@ The dashboard now shows all your services running and their interconnections!
 
 ## Connecting React to the Weather API 🌤️
 
-### Step 12: Configure Vite Proxy
+### Step 12: Configure Vite Proxy 🔧
 
 Configure Vite to proxy API calls to the backend. Update `WeatherApp.Web/vite.config.ts`:
 
@@ -355,7 +355,7 @@ This configuration:
 - **`secure: false`** - Allows self-signed certificates in development
 - **`rewrite`** - Removes `/api` prefix before forwarding to the backend
 
-### Step 13: Create the Weather Service
+### Step 13: Create the Weather Service 🌦️
 
 Create `WeatherApp.Web/src/services/weatherService.ts`:
 
@@ -380,7 +380,7 @@ export const weatherService = {
 };
 ```
 
-### Step 14: Update the React Component
+### Step 14: Update the React Component 📝
 
 Update `WeatherApp.Web/src/App.tsx` to display the weather data:
 
@@ -566,7 +566,7 @@ The CSS provides:
 
 Now let's back our API with Azure Cosmos DB for persistent storage. Thanks to the dev container's Docker-in-Docker setup, we can run the Cosmos DB emulator right inside our development environment!
 
-### Step 15: Add Cosmos DB to AppHost
+### Step 15: Add Cosmos DB to AppHost 💾
 
 Aspire has built-in support for Azure Cosmos DB emulator. You can add it using either approach:
 
@@ -610,7 +610,7 @@ var frontend = builder.AddViteApp("frontend", "../WeatherApp.Web")
 builder.Build().Run();
 ```
 
-### Step 16: Create the Data Layer Project
+### Step 16: Create the Data Layer Project 📦
 
 Let's create a separate data project to handle Entity Framework and data access:
 
@@ -719,7 +719,7 @@ public static class ServiceExtensions
 }
 ```
 
-### Step 17: Configure the API to Use the Data Layer
+### Step 17: Configure the API to Use the Data Layer 🔗
 
 Add a reference from the API to the Data project:
 
@@ -771,7 +771,7 @@ app.MapControllers();
 app.Run();
 ```
 
-### Step 18: Create Minimal API Endpoints
+### Step 18: Create Minimal API Endpoints 🔌
 
 Replace the default WeatherForecast endpoint in `WeatherApp.Api/Program.cs` with endpoints that use the weather service. Add this code before `app.Run()`:
 
@@ -787,7 +787,7 @@ app.MapGet("/weatherforecast", async (IWeatherService weatherService) =>
 
 Remove the existing weather forecast endpoint and summaries array that was generated by the template, and replace it with the service-based endpoints above.
 
-### Step 19: Add a Data Seeding Worker Service
+### Step 19: Add a Data Seeding Worker Service ⏰
 
 Let's add a worker service to seed initial data and demonstrate Aspire's ability to orchestrate background services. Create a new worker project:
 
@@ -976,7 +976,7 @@ The `WithExplicitStart()` configuration means:
 
 Using the Aspire Dev Container template provides significant advantages:
 
-### Consistency Across Team
+### Consistency Across Team 👥
 Every developer gets the exact same environment:
 - ✅ Same .NET SDK version
 - ✅ Same Node.js version  
@@ -986,22 +986,22 @@ Every developer gets the exact same environment:
 
 No more "works on my machine" - the container **is** the machine.
 
-### Zero Setup Time
+### Zero Setup Time ⚡
 New team members can go from zero to running the app in minutes:
-1. Clone the repo
-2. Open in VS Code
-3. Click "Reopen in Container"
-4. Press F5 to run
+1. 📥 Clone the repo
+2. 🔓 Open in VS Code
+3. 🐳 Click "Reopen in Container"
+4. ▶️ Press F5 to run
 
 That's it. No SDK installations, no workload installations, no environment configuration.
 
-### Isolation
+### Isolation 🔒
 The dev container doesn't pollute your host machine:
-- All .NET SDKs, Node.js versions, and tools are isolated
-- Docker containers run inside the dev container (not on your host)
-- You can work on multiple projects with different requirements simultaneously
+- 🔧 All .NET SDKs, Node.js versions, and tools are isolated
+- 🐳 Docker containers run inside the dev container (not on your host)
+- 🔄 You can work on multiple projects with different requirements simultaneously
 
-### Cloud-Ready
+### Cloud-Ready ☁️
 The same container configuration that works locally can be used in:
 - **GitHub Codespaces** - Cloud-hosted dev environments
 - **CI/CD pipelines** - Consistent build environments

@@ -340,7 +340,6 @@ Let's build the infrastructure step by step. We'll create all the Terraform file
 Create `documentation/infra/provider.tf` to configure the AzureRM provider and Terraform Cloud backend:
 
 ```hcl
-```hcl
 terraform {
   required_version = ">= 1.5"
 
@@ -359,7 +358,7 @@ terraform {
     }
   }
 }
-```
+
 
 provider "azurerm" {
   features {
@@ -523,7 +522,7 @@ resource "azurerm_cdn_frontdoor_custom_domain" "docs" {
 }
 ```
 
-### Variables and Resource Group 📝
+### Variables 📝
 
 Create `documentation/infra/variables.tf` for the input variables:
 
@@ -712,18 +711,6 @@ If you get a Docker error like `Docker container returned a non-zero exit code (
    ```bash
    pip show mkdocs-techdocs-core
    ```
-
-For CI/CD pipelines, you can use the `--no-docker` flag to avoid Docker dependency:
-
-```yaml
-- script: |
-    python3 -m pip install --upgrade pip
-    pip3 install mkdocs-techdocs-core
-    # Run from documentation folder where mkdocs.yml is located
-    cd documentation
-    techdocs-cli generate --source-dir . --output-dir ./site --no-docker
-  displayName: 'Generate Documentation'
-```
 
 ## Setting Up Azure DevOps 🔄
 

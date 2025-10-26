@@ -71,6 +71,48 @@ layout: post  # Optional, defaults to post for _posts/ directory
 - **Cross-linking**: Link to related posts in series and GitHub source code
 - **Testing Examples**: Include curl commands for API testing
 
+### Emoji Usage Guidelines
+Emojis significantly improve readability and visual scanning of blog posts. Use them strategically:
+
+**Main Section Headers:**
+- 📚 Documentation/Learning related
+- 🏗️ Architecture/Structure
+- ☁️ Cloud services setup
+- 🔄 Workflows/Processes
+- 🚀 Deployment
+- ✅ Testing/Validation
+- 🎯 Best practices/Goals
+- 🔧 Configuration/Setup
+- 💰 Cost/Pricing
+- 🧹 Cleanup/Maintenance
+
+**Inline Elements:**
+- ✨ Features/Benefits
+- ⚠️ Important warnings/caveats
+- 💡 Tips/Insights
+- 🔐 Security/Credentials
+- 📊 Data/Statistics
+- 🗂️ Structure/Organization
+- 📋 Lists/Configuration
+- 🌍 Global/Distributed
+- 🗄️ Storage/Database
+- 🆓 Free tier/No cost
+
+**Callout Blocks:**
+- ✅ Success/Working state
+- ❌ Failures/Don't do this
+- 🤔 Decision points
+- 📌 Examples
+- 🎨 Design elements
+
+**Best Practices:**
+1. Add emoji to main section headers (##) for visual hierarchy
+2. Add emoji to subsection headers (###) when they have distinct purposes
+3. Use inline emojis for callouts and lists to highlight important information
+4. Keep emoji usage consistent within similar content types
+5. Don't overuse - one emoji per section header is standard
+6. Choose emojis that visually represent the content (not random)
+
 ### TypeScript Journey Series Patterns
 - Each post builds on previous ones
 - Include Docker/devcontainer setup

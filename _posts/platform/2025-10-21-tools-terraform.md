@@ -12,10 +12,10 @@ description: "Setting up Terraform Cloud with Azure service principals, building
 
 In our [tool selection post](https://brianpsheridan.com/platform/tools/modernization/2025/10/04/tool-selection.html), we chose Terraform as our Infrastructure as Code (IaC) tool. But choosing the tool is just the beginning. To build a truly modern development platform, we need:
 
-- **Secure Azure authentication** without storing credentials in code
-- **Centralized state management** that works across teams
-- **Reusable infrastructure patterns** based on Azure best practices
-- **A module registry** for sharing standardized components
+- **🔐 Secure Azure authentication** without storing credentials in code
+- **🗂️ Centralized state management** that works across teams
+- **🏗️ Reusable infrastructure patterns** based on Azure best practices
+- **📚 A module registry** for sharing standardized components
 
 This post walks through setting up **Terraform Cloud** with Azure, organizing infrastructure code, and building modules that align with Azure's resource classification patterns from [Azure Charts](https://azurecharts.com/).
 
@@ -25,23 +25,23 @@ This post walks through setting up **Terraform Cloud** with Azure, organizing in
 
 Before diving into the setup, let's understand why we're using Terraform Cloud instead of local state files or basic remote backends:
 
-**State Management**
+**🔒 State Management**
 - Centralized, secure state storage with automatic locking
 - State versioning and rollback capabilities
 - Team collaboration without state file conflicts
 
-**Secure Credential Management**
+**🛡️ Secure Credential Management**
 - Workload Identity Federation with Azure (no stored secrets!)
 - Encrypted variable storage
 - Audit logging for compliance
 
-**Team Workflows**
+**👥 Team Workflows**
 - CLI-driven runs for infrastructure deployments
 - VCS integration for module versioning and publishing
 - Shared state management across teams
 - Private module registry for code reuse
 
-**Cost Optimization**
+**💰 Cost Optimization**
 - Free tier supports up to 500 resources per month
 - Pay only for what you use beyond that
 - **Note**: While 500 free resources sounds generous, the per-resource cost beyond that is quite high. If you're managing large-scale infrastructure across multiple environments, costs can add up quickly. In a future post, we'll explore migrating state management to Azure Storage Account as a more cost-effective alternative for teams with extensive infrastructure footprints.
@@ -62,9 +62,9 @@ export TF_CLOUD_ORG="my-org"
 
 Terraform Cloud uses a two-level hierarchy:
 
-**Projects**: Logical groupings of related workspaces (e.g., "Platform Infrastructure", "Application Environments")
+**📂 Projects**: Logical groupings of related workspaces (e.g., "Platform Infrastructure", "Application Environments")
 
-**Workspaces**: Individual environment configurations (e.g., "shared-services-dev", "app-prod", "app-staging")
+**🔲 Workspaces**: Individual environment configurations (e.g., "shared-services-dev", "app-prod", "app-staging")
 
 This maps well to our platform structure:
 
@@ -111,10 +111,10 @@ You should end up with three workspaces in your project:
 - `app-test` - Deploy third (depends on both shared-services and env-test)
 
 **Why CLI-driven workflow?**
-- Gives you full control over when and how infrastructure is deployed
-- Allows orchestration via pipelines (GitHub Actions, Azure DevOps, etc.)
-- Perfect for complex deployment workflows with dependencies
-- You trigger runs from your local machine or CI/CD pipeline, not from Git commits
+- ✅ Gives you full control over when and how infrastructure is deployed
+- ✅ Allows orchestration via pipelines (GitHub Actions, Azure DevOps, etc.)
+- ✅ Perfect for complex deployment workflows with dependencies
+- ✅ You trigger runs from your local machine or CI/CD pipeline, not from Git commits
 
 We'll explore pipeline automation in a future post on Azure DevOps Pipelines.
 
@@ -122,7 +122,7 @@ We'll explore pipeline automation in a future post on Azure DevOps Pipelines.
 
 Before we can work with Terraform Cloud, we need to install the Terraform CLI:
 
-**macOS (using Homebrew):**
+**🍎 macOS (using Homebrew):**
 ```bash
 brew tap hashicorp/tap
 brew install hashicorp/tap/terraform
@@ -131,7 +131,7 @@ brew install hashicorp/tap/terraform
 terraform version
 ```
 
-**Windows (using Chocolatey):**
+**🪟 Windows (using Chocolatey):**
 ```bash
 choco install terraform
 
@@ -139,7 +139,7 @@ choco install terraform
 terraform version
 ```
 
-**Linux (Ubuntu/Debian):**
+**🐧 Linux (Ubuntu/Debian):**
 ```bash
 wget -O- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
 echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
@@ -338,10 +338,10 @@ organization:<ORG>:project:<PROJECT>:workspace:<WORKSPACE>:run_phase:<PHASE>
 
 **Security best practices:**
 
-- **Development**: Create credentials for both `plan` and `apply` phases per workspace
-- **Production**: Consider creating only `apply` credentials to prevent unauthorized planning (though both are typically needed)
-- **Multiple environments**: Create separate service principals for dev, staging, and prod with appropriate Azure RBAC permissions
-- **Least privilege**: Each service principal should only have access to resources in its environment
+- **🧪 Development**: Create credentials for both `plan` and `apply` phases per workspace
+- **🔒 Production**: Consider creating only `apply` credentials to prevent unauthorized planning (though both are typically needed)
+- **🌍 Multiple environments**: Create separate service principals for dev, staging, and prod with appropriate Azure RBAC permissions
+- **🔐 Least privilege**: Each service principal should only have access to resources in its environment
 
 **Example: Separate service principals for dev and prod:**
 
@@ -537,27 +537,27 @@ infra/
 
 **Three-tier structure explained:**
 
-1. **Shared Services** (`infra/shared-services/`)
+1. **🏢 Shared Services** (`infra/shared-services/`)
    - Resources used across **all environments** (dev, staging, prod)
    - Deployed **once** and referenced by all other layers
    - Example: Container Registry for storing Docker images
 
-2. **Environment** (`infra/environment/`)
+2. **🌍 Environment** (`infra/environment/`)
    - Resources specific to an **environment** but shared across apps
    - Deployed **per environment** (separate for dev, staging, prod)
    - Example: App Service Plan (shared compute for multiple apps)
 
-3. **App** (`infra/app/`)
+3. **📱 App** (`infra/app/`)
    - Resources for a **specific application**
    - Deployed **per app per environment**
    - Example: Web App instance with app-specific settings
 
 **Why this structure?**
 
-- **Clear separation of concerns** - Different lifecycles for different resource types
-- **Resource sharing** - ACR shared across all environments, App Service Plan shared within an environment
-- **Independent deployments** - Can update app without touching shared services
-- **Cost optimization** - Share expensive resources (ACR, App Service Plans) where appropriate
+- **🎯 Clear separation of concerns** - Different lifecycles for different resource types
+- **♻️ Resource sharing** - ACR shared across all environments, App Service Plan shared within an environment
+- **🚀 Independent deployments** - Can update app without touching shared services
+- **💵 Cost optimization** - Share expensive resources (ACR, App Service Plans) where appropriate
 
 Later, we can expand each layer with additional modules like Key Vault, Front Door, API Management, and Application Insights.
 
@@ -1339,11 +1339,85 @@ terraform destroy --auto-approve
 - Terraform will error if you try to destroy a resource that's still being referenced
 
 **Cost considerations:**
-- **Container Registry (Basic SKU)**: ~$5/month
-- **App Service Plan (P0v3)**: ~$58/month
-- **Web App**: Included with App Service Plan
+- **💰 Container Registry (Basic SKU)**: ~$5/month
+- **💰 App Service Plan (P0v3)**: ~$58/month
+- **💰 Web App**: Included with App Service Plan
 
 Total estimated cost for this tutorial setup: ~$63/month if left running.
+
+## Cost Comparison: App Service vs Azure Static Web Apps 💰
+
+If you're wondering whether this architecture is right for your use case, here's a comparison with Azure Static Web Apps - a lightweight alternative for static content and simple applications:
+
+**App Service Architecture (This Tutorial)**
+
+| Resource | SKU | Monthly Cost |
+|----------|-----|--------------|
+| 🐳 Container Registry (Basic) | Basic | $5.00 |
+| ⚙️ App Service Plan (Linux) | P0v3 | $58.00 |
+| 🌐 Web App | Included with Plan | $0.00 |
+| **Total** | | **~$63/month** |
+
+**Use when:**
+- ✅ You need backend API capabilities (Node.js, .NET, Python, Java, etc.)
+- ✅ Running containerized applications
+- ✅ Need traditional app server architecture
+- ✅ Require stateful applications
+- ✅ Need VNet integration or advanced networking
+- ✅ Running long-running processes or background jobs
+
+---
+
+**Azure Static Web Apps Alternative**
+
+| Resource | Tier | Monthly Cost |
+|----------|------|--------------|
+| 🌍 Static Web App | Free Tier | $0.00 |
+| 🔧 Functions (Serverless Backend) | Consumption | ~$5-15 |
+| 🗄️ Static Content (100GB/mo included) | Free | $0.00 |
+| **Total** | | **~$5-15/month** |
+
+**Use when:**
+- ✅ Hosting static sites (documentation, blogs, SPAs)
+- ✅ Simple serverless backends (Azure Functions)
+- ✅ No need for traditional app servers
+- ✅ Want minimal operational overhead
+- ✅ Cold-start latency is acceptable (functions)
+- ✅ Infrequent traffic patterns
+
+**Key Differences:**
+
+| Feature | App Service | Static Web Apps |
+|---------|-------------|-----------------|
+| **Startup Cost** | ~$63/month | ~$0-15/month |
+| **Backend Runtime** | Full runtimes (24/7) | Serverless (on-demand) |
+| **Deployment** | Containers or direct code | Git integration or Static files |
+| **Always-On** | Yes (default) | No (pay per execution) |
+| **State Management** | Supported | Limited |
+| **Scaling** | App Service Plan based | Automatic serverless |
+| **Cold Start Penalty** | None | Functions: 2-5 seconds |
+
+**Decision Matrix:**
+
+Choose **App Service** if you need:
+- Traditional backend APIs
+- High request volume (>1M requests/month)
+- Stateful applications
+- Always-on availability
+- Complex business logic
+
+Choose **Static Web Apps** if you need:
+- Static content hosting
+- Lightweight APIs
+- Bursty traffic patterns
+- Cost optimization focus
+- Simple architectures
+
+**Hybrid Approach:** Many teams use both:
+- **Static Web Apps** for documentation sites and marketing pages (~$5-15/month)
+- **App Service** for production APIs and services (~$63+/month per environment)
+
+For this tutorial, we're using **App Service** because we're building a full platform infrastructure that will eventually run backend services. In a future post covering documentation deployment, we'll demonstrate **Static Web Apps** for static site hosting with Front Door.
 
 ## Next Steps 🚀
 
@@ -1353,20 +1427,20 @@ We've now set up:
 - ✅ CLI-driven workflows for better developer experience
 
 **Coming up in the series:**
-- **Publishing Terraform Modules** - Extracting our local modules into separate Git repositories and publishing them to Terraform Cloud's private registry for reuse across projects
-- **Complete Platform Infrastructure** - Building out the full infrastructure with all the modules (Key Vault, Front Door, API Management, Application Insights, and more) using our published modules
-- **Azure Environment Architecture** - Deep dive into our three-tier resource organization strategy (shared services, environment resources, and application workspaces) and why this pattern works well for multi-environment platforms
-- **Azure DevOps Pipelines** - Automating infrastructure deployment and application CI/CD workflows
+- 📦 **Publishing Terraform Modules** - Extracting our local modules into separate Git repositories and publishing them to Terraform Cloud's private registry for reuse across projects
+- 🏗️ **Complete Platform Infrastructure** - Building out the full infrastructure with all the modules (Key Vault, Front Door, API Management, Application Insights, and more) using our published modules
+- 🌍 **Azure Environment Architecture** - Deep dive into our three-tier resource organization strategy (shared services, environment resources, and application workspaces) and why this pattern works well for multi-environment platforms
+- 🔄 **Azure DevOps Pipelines** - Automating infrastructure deployment and application CI/CD workflows
 
 ## Resources 📚
 
-- [Terraform Cloud Documentation](https://developer.hashicorp.com/terraform/cloud-docs)
-- [Azure Provider Documentation](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs)
-- [Azure Charts Resource Classification](https://azurecharts.com/)
-- [Workload Identity Federation](https://learn.microsoft.com/en-us/azure/active-directory/develop/workload-identity-federation)
-- [Module Registry Best Practices](https://developer.hashicorp.com/terraform/cloud-docs/registry/publish-modules)
+- 📖 [Terraform Cloud Documentation](https://developer.hashicorp.com/terraform/cloud-docs)
+- 🔧 [Azure Provider Documentation](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs)
+- 📊 [Azure Charts Resource Classification](https://azurecharts.com/)
+- 🔐 [Workload Identity Federation](https://learn.microsoft.com/en-us/azure/active-directory/develop/workload-identity-federation)
+- 📦 [Module Registry Best Practices](https://developer.hashicorp.com/terraform/cloud-docs/registry/publish-modules)
 
 ---
 
-Questions? Want to discuss Terraform patterns? Find me on [LinkedIn](https://linkedin.com/in/brianpsheridan) or [GitHub](https://github.com/two4suited)!
+❓ Questions? Want to discuss Terraform patterns? Find me on [LinkedIn](https://linkedin.com/in/brianpsheridan) or [GitHub](https://github.com/two4suited)!
 

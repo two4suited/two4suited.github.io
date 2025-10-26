@@ -39,31 +39,186 @@ The code for this post is available in the [blog-platform-aspire repository](htt
 - [Cost Optimization](#cost-optimization)
 - [Cleaning Up Resources](#cleaning-up-resources)
 
-## Why Static Site Hosting on Azure Storage?
+## Why Static Site Hosting on Azure Storage? 💾
 
 Traditional web hosting requires web servers, compute resources, and ongoing maintenance. Static site hosting on Azure Storage eliminates all of that:
 
-**Cost Comparison:**
+**Cost Comparison:** 💰
 - App Service Basic (B1): ~$13/month
 - Azure Storage static website: ~$0.50/month
 - Savings: 96% reduction
 
-**What You Get:**
-- 99.9% availability SLA
-- Automatic scaling
-- HTTPS support (with Front Door)
-- Custom domain support
-- CDN integration
-- No server management
+**What You Get:** ✨
+- ✅ 99.9% availability SLA
+- ✅ Automatic scaling
+- ✅ HTTPS support (with Front Door)
+- ✅ Custom domain support
+- ✅ CDN integration
+- ✅ No server management
 
-**Perfect For:**
-- Documentation sites
-- Marketing pages
-- Single-page applications
-- Static blog hosting
-- Design system showcases
+**Perfect For:** 🎯
+- 📚 Documentation sites
+- 📱 Marketing pages
+- ⚛️ Single-page applications
+- 📰 Static blog hosting
+- 🎨 Design system showcases
 
-## Architecture Overview
+### Detailed Cost Comparison with Azure Static Web Apps 📊
+
+When choosing between static site hosting options, here's a comprehensive breakdown:
+
+**Azure Storage + Front Door (This Tutorial)** 🏢
+
+| Resource | Cost |
+|----------|------|
+| 🗄️ Storage Account (LRS) | $0.50 |
+| 🌍 Front Door (Standard) | $35.00 |
+| 📊 Data Transfer | $0.01-0.10 |
+| **Monthly Total** | **~$36/month** |
+
+**Benefits:** ✅
+- ✅ Global CDN distribution
+- ✅ Managed SSL certificates
+- ✅ Custom domains with HTTPS
+- ✅ Advanced caching rules
+- ✅ Security headers via rules
+- ✅ High availability SLA
+
+**Use when:** 🤔
+- You need global CDN performance
+- Custom domain is essential
+- Professional/production documentation
+- Medium to high traffic sites
+
+---
+
+**Azure Static Web Apps (Free Alternative)** 🆓
+
+| Resource | Cost |
+|----------|------|
+| 🌐 Static Web App (Free tier) | $0.00 |
+| ⚡ Azure Functions (if needed) | $5-15 |
+| 📊 Data Transfer | Included |
+| **Monthly Total** | **~$0-15/month** |
+
+**Benefits:**
+- ✅ No baseline cost
+- ✅ Git integration (auto-deploy)
+- ✅ Serverless backend (optional)
+- ✅ Built-in staging environments
+- ✅ Custom domains supported
+- ✅ Managed SSL certificates
+
+**Limitations:**
+- ❌ No CDN (slower global distribution)
+- ❌ No advanced caching rules
+- ❌ Limited to free tier features initially
+- ❌ Cold start latency for functions
+
+**Use when:**
+- Cost is the primary concern
+- Documentation accessed mainly from single region
+- Lower traffic volumes
+- Team/internal documentation
+- Quick MVP deployment
+
+---
+
+**Decision Matrix**
+
+| Factor | Storage + Front Door | Static Web Apps |
+|--------|----------------------|-----------------|
+| **Startup Cost** | ~$36/month | ~$0/month |
+| **Global Performance** | Excellent | Good (no CDN) |
+| **Setup Complexity** | Medium | Low |
+| **Custom Domain** | Yes (with HTTPS) | Yes (with HTTPS) |
+| **Deployment** | Pipeline-driven | Git-integrated |
+| **Scaling** | Automatic | Automatic |
+| **Best For** | Production docs | Quick prototypes |
+
+---
+
+**Cost-Benefit Analysis**
+
+Choose **Storage + Front Door** if:
+- 💰 Budget is available for production setup
+- 🌍 Global audience needs fast access
+- 🔒 Professional appearance important
+- 📈 High traffic expected (>10GB/month)
+- 🎯 Custom domain essential for branding
+
+Choose **Static Web Apps** if:
+- 💰 Minimizing costs critical
+- 🌐 Primarily regional/single-region audience
+- ⚡ Quick time-to-market needed
+- 📊 Lower traffic (<5GB/month)
+- 🏢 Internal/team documentation
+
+---
+
+### The Hidden Win: Consolidating Multiple Sites on One Front Door 🚀
+
+Here's where Storage + Front Door becomes **incredibly cost-effective**: if you're already hosting other sites or APIs behind a Front Door instance, adding documentation is nearly free.
+
+**Scenario: You Already Have Front Door** 💡
+
+| Resource | Single Site | 2-3 Sites | 4+ Sites |
+|----------|------------|----------|---------|
+| 🌍 Front Door Standard | $35.00 | $35.00 | $35.00 |
+| 🗄️ Storage Account #1 | $0.50 | $0.50 | $0.50 |
+| 🗄️ Storage Account #2 | — | $0.50 | $0.50 |
+| 🗄️ Storage Account #3 | — | $0.50 | $0.50 |
+| 📊 Data Transfer | $0.10 | $0.30 | $0.50 |
+| **Monthly Total** | **$35.60** | **$36.80** | **$37.50** |
+| **Cost Per Site** | $35.60 | **$12.27** | **$9.38** |
+
+**Real-World Advantage:** 💰
+
+Once Front Door is running, each additional storage account costs only **~$0.50-1.00/month**! This is dramatically cheaper than:
+- ⛔ Static Web Apps at $9-36/month per site
+- ⛔ Additional App Service instances
+- ⛔ Separate CDN configurations
+
+**Multi-Site Architecture Example:** 🏗️
+
+```
+Front Door (Standard) - $35/month 🌍
+├── 📚 API Documentation (Storage)
+├── 📰 Engineering Blog (Storage)
+├── 🎨 Design System (Storage)
+├── 📊 Product Dashboards (Storage)
+└── 🔧 Developer Portal (Storage)
+```
+
+**Total Cost:** ~$36-37/month for 5 sites
+**Cost Per Site:** ~$7.40/month 💵
+
+---
+
+### When to Use This Pattern ✅
+
+✅ **Perfect for organizations where:**
+- 🌐 Multiple documentation/content sites needed
+- 🔄 Front Door already deployed for API distribution
+- 💰 Company paying $35/month anyway for CDN
+- 🔒 Want unified SSL, caching, security policies
+- 📋 Need audit trail for content delivery
+
+✅ **Examples:** 📌
+- Main API docs + Engineering blog + Design system
+- Internal wiki + Public knowledge base + Marketing site
+- Multiple product documentation sites
+- Team/department resource portals
+
+⚠️ **Trade-offs:** ⚠️
+- 🤝 Shared Front Door instance (coordinate rules with other teams)
+- 🔄 All sites use same security headers/caching policies
+- 🎯 Single point of configuration (can affect multiple sites)
+- 📝 May need governance around content management
+
+---
+
+## Architecture Overview 🏗️
 
 Our documentation deployment pipeline looks like this:
 
@@ -103,23 +258,23 @@ Our documentation deployment pipeline looks like this:
 └─────────────────────┘
 ```
 
-## What is TechDocs?
+## What is TechDocs? 📖
 
 [TechDocs](https://backstage.io/docs/features/techdocs/techdocs-overview) is the documentation system built into Backstage. It converts Markdown files into beautiful, searchable documentation sites with:
 
-- **Markdown-Based**: Write docs in plain Markdown with your code
-- **Built-in Search**: Full-text search across all documentation
-- **Component-Aware**: Documentation tied to specific services/components
-- **Beautiful UI**: Modern, responsive design out of the box
-- **Version Control**: Docs live with code, versioned together
+- **Markdown-Based**: ✍️ Write docs in plain Markdown with your code
+- **Built-in Search**: 🔍 Full-text search across all documentation
+- **Component-Aware**: 🔗 Documentation tied to specific services/components
+- **Beautiful UI**: 🎨 Modern, responsive design out of the box
+- **Version Control**: 📦 Docs live with code, versioned together
 
 Even if you're not using Backstage, TechDocs can generate standalone documentation sites.
 
-## Setting Up Terraform Cloud
+## Setting Up Terraform Cloud ☁️
 
 Before we create Azure resources, we need to set up Terraform Cloud to manage our infrastructure state and execute our deployments.
 
-### Creating the Workspace in Terraform Cloud
+### Creating the Workspace in Terraform Cloud 🔧
 
 1. **Log into Terraform Cloud** at https://app.terraform.io
 2. **Create a new workspace**:
@@ -134,11 +289,11 @@ Before we create Azure resources, we need to set up Terraform Cloud to manage ou
    - Set Terraform Version: "1.5.0" or later
    - Enable "Auto apply" if you want automatic deployments (optional)
 
-### Configure Workspace Variables
+### Configure Workspace Variables 🔐
 
 In the workspace, go to Variables and add the following:
 
-**Environment Variables** (for Azure authentication):
+**Environment Variables** (for Azure authentication): 🔑
 - `ARM_CLIENT_ID`: Your Azure service principal client ID
 - `ARM_CLIENT_SECRET`: Your Azure service principal secret (**mark as sensitive**)
 - `ARM_SUBSCRIPTION_ID`: Your Azure subscription ID
@@ -149,7 +304,7 @@ In the workspace, go to Variables and add the following:
 - `project_name`: `platformdocs`
 - `custom_domain`: Leave empty or set to your custom domain (e.g., `docs.yourdomain.com`)
 
-### Getting Azure Service Principal Credentials
+### Getting Azure Service Principal Credentials 🔑
 
 If you don't have a service principal yet, create one:
 
@@ -178,7 +333,9 @@ az account show --query id -o tsv  # Use this for ARM_SUBSCRIPTION_ID
 
 Let's build the infrastructure step by step. We'll create all the Terraform files in the `documentation/infra` folder.
 
-### Terraform Provider Configuration
+## Azure Infrastructure with Terraform 🏛️
+
+### Terraform Provider Configuration 🖥️
 
 Create `documentation/infra/provider.tf` to configure the AzureRM provider and Terraform Cloud backend:
 
@@ -218,7 +375,7 @@ provider "azurerm" {
 }
 ```
 
-### Resource Group and Common Resources
+### Resource Group and Common Resources 📦
 
 Create `documentation/infra/main.tf` for the resource group and common tags:
 
@@ -242,11 +399,11 @@ resource "azurerm_resource_group" "docs" {
 }
 ```
 
-### Storage Account for Static Website
+### Storage Account for Static Website 🗄️
 
 Create `documentation/infra/storage.tf` for the storage account configured for static website hosting:
 
-**Important Note on Storage Account Naming:** Azure Storage account names must be globally unique across all of Azure, 3-24 characters long, and contain only lowercase letters and numbers. In our case, we're using `st${var.project_name}` which creates `stplatformdocs` - if this name is already taken globally, you'll need to modify the `project_name` variable to make it unique.
+**Important Note on Storage Account Naming:** ⚠️ Azure Storage account names must be globally unique across all of Azure, 3-24 characters long, and contain only lowercase letters and numbers. In our case, we're using `st${var.project_name}` which creates `stplatformdocs` - if this name is already taken globally, you'll need to modify the `project_name` variable to make it unique.
 
 ```hcl
 resource "azurerm_storage_account" "docs" {
@@ -278,7 +435,7 @@ output "storage_account_name" {
 }
 ```
 
-### Azure Front Door for Global Distribution
+### Azure Front Door for Global Distribution 🌍
 
 Create `documentation/infra/frontdoor.tf` for Azure Front Door CDN and custom domain support:
 
@@ -366,7 +523,7 @@ resource "azurerm_cdn_frontdoor_custom_domain" "docs" {
 }
 ```
 
-### Variables and Resource Group
+### Variables and Resource Group 📝
 
 Create `documentation/infra/variables.tf` for the input variables:
 
@@ -395,11 +552,11 @@ variable "custom_domain" {
 }
 ```
 
-## Setting Up TechDocs
+## Setting Up TechDocs 📚
 
 TechDocs requires a specific project structure. Here's a minimal setup:
 
-### Documentation Structure
+### Documentation Structure 🗂️
 
 ```
 repo-root/
@@ -426,7 +583,7 @@ repo-root/
 │       └── monitoring.tf
 ```
 
-### MkDocs Configuration
+### MkDocs Configuration 📋
 
 Create `documentation/mkdocs.yml`:
 
@@ -568,7 +725,7 @@ For CI/CD pipelines, you can use the `--no-docker` flag to avoid Docker dependen
   displayName: 'Generate Documentation'
 ```
 
-## Setting Up Azure DevOps
+## Setting Up Azure DevOps 🔄
 
 Before we create the pipeline, we need to set up authentication and permissions in Azure DevOps.
 
@@ -796,7 +953,7 @@ stages:
 5. **Parallel Stages**: Build and DeployInfrastructure run in parallel for faster execution
 6. **TerraformInstaller Task**: Uses the full task ID `ms-devlabs.custom-terraform-tasks.custom-terraform-installer-task.TerraformInstaller@0`
 
-## Deployment Workflow
+## Deployment Workflow 🚀
 
 Here's the complete workflow for deploying documentation to the test environment:
 
@@ -911,7 +1068,7 @@ output "connection_string" {
 
 Add the Application Insights snippet to your documentation template.
 
-## Testing the Deployment
+## Testing the Deployment ✅
 
 After your pipeline runs, test the deployment:
 
@@ -938,7 +1095,7 @@ curl https://ep-{your-project-name}-{random-hash}.azurefd.net/
 curl https://docs.yourdomain.com/
 ```
 
-## Best Practices
+## Best Practices 🎯
 
 ### 1. Compression
 
@@ -1002,7 +1159,7 @@ resource "azurerm_cdn_frontdoor_rule" "security_headers" {
 }
 ```
 
-## Troubleshooting
+## Troubleshooting 🔧
 
 ### Documentation Not Updating
 
@@ -1044,7 +1201,7 @@ If your custom domain doesn't work:
 2. **Check certificate**: Ensure the managed certificate is provisioned (can take 15-30 minutes)
 3. **Review association**: Verify the custom domain association in Front Door
 
-## Cost Optimization
+## Cost Optimization 💰
 
 Our documentation setup is already cost-effective, but you can optimize further:
 
@@ -1090,7 +1247,7 @@ For very low traffic sites, Front Door Classic might be cheaper:
 
 **Note:** For this tutorial, we're deploying to a test environment with the full Front Door setup to demonstrate the complete solution. In practice, you might skip Front Door for development environments and use only the storage account endpoint to save costs.
 
-## Cleaning Up Resources
+## Cleaning Up Resources 🧹
 
 To delete all resources and avoid charges, you'll need to run Terraform locally. This is the only time you need to run Terraform outside of the pipeline:
 

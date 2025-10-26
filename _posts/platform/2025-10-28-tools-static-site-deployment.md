@@ -21,6 +21,25 @@ This approach gives us:
 
 The code for this post is available in the [blog-platform-aspire repository](https://github.com/two4suited/blog-platform-aspire/tree/aspire-tools-static-site).
 
+## Table of Contents
+
+- [Why Static Site Hosting on Azure Storage?](#why-static-site-hosting-on-azure-storage)
+- [Architecture Overview](#architecture-overview)
+- [What is TechDocs?](#what-is-techdocs)
+- [Setting Up Terraform Cloud](#setting-up-terraform-cloud)
+- [Azure Infrastructure with Terraform](#azure-infrastructure-with-terraform)
+- [Setting Up TechDocs](#setting-up-techdocs)
+- [Setting Up Azure DevOps](#setting-up-azure-devops)
+- [Azure DevOps Pipeline](#azure-devops-pipeline)
+- [Deployment Workflow](#deployment-workflow)
+- [Monitoring and Analytics](#monitoring-and-analytics)
+- [Testing the Deployment](#testing-the-deployment)
+- [Best Practices](#best-practices)
+- [Troubleshooting](#troubleshooting)
+- [Cost Optimization](#cost-optimization)
+- [Cleaning Up Resources](#cleaning-up-resources)
+- [Coming up in the Series](#coming-up-in-the-series)
+
 ## Why Static Site Hosting on Azure Storage?
 
 Traditional web hosting requires web servers, compute resources, and ongoing maintenance. Static site hosting on Azure Storage eliminates all of that:

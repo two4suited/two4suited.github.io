@@ -1116,13 +1116,13 @@ In the next posts, we'll continue building our platform infrastructure:
 
 We've built a complete documentation deployment pipeline that:
 
-✅ Hosts static documentation on Azure Storage for minimal cost
-✅ Distributes globally with Azure Front Door CDN
-✅ Generates beautiful docs with TechDocs
-✅ Automates deployment with Azure DevOps pipelines
-✅ Manages infrastructure with Terraform Cloud
-✅ Supports custom domains with managed SSL certificates
-✅ Deploys to test environment (~$36/month) with same infrastructure as production
+✅ Hosts static documentation on Azure Storage for minimal cost  
+✅ Distributes globally with Azure Front Door CDN  
+✅ Generates beautiful docs with TechDocs  
+✅ Automates deployment with Azure DevOps pipelines  
+✅ Manages infrastructure with Terraform Cloud  
+✅ Supports custom domains with managed SSL certificates  
+✅ Deploys to test environment (~$36/month) with same infrastructure as production  
 
 **Key Takeaways:**
 - Azure Storage account names must be globally unique - choose a unique project name

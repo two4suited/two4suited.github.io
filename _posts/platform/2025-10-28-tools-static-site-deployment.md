@@ -877,7 +877,6 @@ resource "azurerm_application_insights" "docs" {
 
   tags = local.common_tags
 }
-```
 
 output "instrumentation_key" {
   value       = azurerm_application_insights.docs.instrumentation_key

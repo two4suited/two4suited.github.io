@@ -38,7 +38,6 @@ The code for this post is available in the [blog-platform-aspire repository](htt
 - [Troubleshooting](#troubleshooting)
 - [Cost Optimization](#cost-optimization)
 - [Cleaning Up Resources](#cleaning-up-resources)
-- [Coming up in the Series](#coming-up-in-the-series)
 
 ## Why Static Site Hosting on Azure Storage?
 
@@ -1116,20 +1115,6 @@ terraform destroy
 ```
 
 All infrastructure deployment is handled by the Azure DevOps pipeline, but cleanup requires manual intervention to prevent accidental deletion.
-
-## Coming up in the Series
-
-In the next posts, we'll continue building our platform infrastructure:
-
-- **November 4**: Generating type-safe API clients with Kiota
-- **November 11**: Creating reusable Azure DevOps pipeline templates
-- **November 18**: Building custom .NET project templates for standardization
-- **November 25**: Service virtualization with WireMock for development
-- **December 2**: Setting up Azure subscription structure with Terraform
-- **December 9**: Designing Azure environment architecture (dev/test/prod)
-- **December 16**: Building shared services infrastructure
-- **December 23**: Configuring RBAC and permissions with Terraform
-- **December 30**: Exploring Pulumi as an alternative to Terraform
 
 ## Summary
 

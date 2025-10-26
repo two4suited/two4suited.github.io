@@ -1,6 +1,6 @@
 ---
 title: "Building a Modern Development Platform: Deploying Platform Documentation with Azure Storage and Front Door 📚"
-date: 2025-10-28T06:00:00-07:00
+date: 2025-10-26T06:00:00-07:00
 draft: false
 categories: ["platform","azure","terraform","static-sites","documentation","front-door"]
 description: "Deploying platform documentation sites to Azure Storage with Front Door CDN using TechDocs, Azure DevOps pipelines, and Terraform Cloud for infrastructure as code"
@@ -127,7 +127,6 @@ In the workspace, go to Variables and add the following:
 - `ARM_TENANT_ID`: Your Azure tenant ID
 
 **Terraform Variables**:
-- `environment`: `prod` (or `dev` for development)
 - `location`: `westus2`
 - `project_name`: `platformdocs`
 - `custom_domain`: Leave empty or set to your custom domain (e.g., `docs.yourdomain.com`)
@@ -166,6 +165,7 @@ Let's build the infrastructure step by step. We'll create all the Terraform file
 Create `documentation/infra/provider.tf` to configure the AzureRM provider and Terraform Cloud backend:
 
 ```hcl
+```hcl
 terraform {
   required_version = ">= 1.5"
 
@@ -184,6 +184,7 @@ terraform {
     }
   }
 }
+```
 
 provider "azurerm" {
   features {
@@ -205,8 +206,10 @@ Create `documentation/infra/main.tf` for the resource group and common tags:
 
 ```hcl
 locals {
+  environment = "test"  # Hardcoded for this deployment
+  
   common_tags = {
-    environment = var.environment
+    environment = local.environment
     purpose     = "platform-documentation"
     managed_by  = "terraform"
     project     = var.project_name
@@ -214,7 +217,7 @@ locals {
 }
 
 resource "azurerm_resource_group" "docs" {
-  name     = "rg-${var.project_name}-${var.environment}"
+  name     = "rg-${var.project_name}-${local.environment}"
   location = var.location
 
   tags = local.common_tags
@@ -225,21 +228,24 @@ resource "azurerm_resource_group" "docs" {
 
 Create `documentation/infra/storage.tf` for the storage account configured for static website hosting:
 
+**Important Note on Storage Account Naming:** Azure Storage account names must be globally unique across all of Azure, 3-24 characters long, and contain only lowercase letters and numbers. In our case, we're using `st${var.project_name}` which creates `stplatformdocs` - if this name is already taken globally, you'll need to modify the `project_name` variable to make it unique.
+
 ```hcl
 resource "azurerm_storage_account" "docs" {
-  name                     = "st${var.project_name}${var.environment}"
+  name                     = "st${var.project_name}"
   resource_group_name      = azurerm_resource_group.docs.name
   location                 = azurerm_resource_group.docs.location
   account_tier             = "Standard"
   account_replication_type = "LRS"
   account_kind             = "StorageV2"
 
-  static_website {
-    index_document     = "index.html"
-    error_404_document = "404.html"
-  }
-
   tags = local.common_tags
+}
+
+resource "azurerm_storage_account_static_website" "docs" {
+  storage_account_id = azurerm_storage_account.docs.id
+  index_document     = "index.html"
+  error_404_document = "404.html"
 }
 
 # Output the primary endpoint
@@ -259,10 +265,8 @@ output "storage_account_name" {
 Create `documentation/infra/frontdoor.tf` for Azure Front Door CDN and custom domain support:
 
 ```hcl
-# frontdoor.tf
-
 resource "azurerm_cdn_frontdoor_profile" "docs" {
-  name                = "fd-${var.project_name}-${var.environment}"
+  name                = "fd-${var.project_name}"
   resource_group_name = azurerm_resource_group.docs.name
   sku_name            = "Standard_AzureFrontDoor"
 
@@ -270,7 +274,7 @@ resource "azurerm_cdn_frontdoor_profile" "docs" {
 }
 
 resource "azurerm_cdn_frontdoor_endpoint" "docs" {
-  name                     = "ep-${var.project_name}-${var.environment}"
+  name                     = "ep-${var.project_name}"
   cdn_frontdoor_profile_id = azurerm_cdn_frontdoor_profile.docs.id
   
   tags = local.common_tags
@@ -312,17 +316,35 @@ resource "azurerm_cdn_frontdoor_route" "docs" {
   cdn_frontdoor_endpoint_id     = azurerm_cdn_frontdoor_endpoint.docs.id
   cdn_frontdoor_origin_group_id = azurerm_cdn_frontdoor_origin_group.docs.id
   cdn_frontdoor_origin_ids      = [azurerm_cdn_frontdoor_origin.docs.id]
+  cdn_frontdoor_custom_domain_ids = var.custom_domain != "" ? [azurerm_cdn_frontdoor_custom_domain.docs[0].id] : []
 
   supported_protocols    = ["Http", "Https"]
   patterns_to_match      = ["/*"]
   forwarding_protocol    = "HttpsOnly"
   link_to_default_domain = true
   https_redirect_enabled = true
+
+  depends_on = [
+    azurerm_cdn_frontdoor_origin.docs,
+    azurerm_cdn_frontdoor_custom_domain.docs
+  ]
 }
 
 output "frontdoor_endpoint" {
   value       = azurerm_cdn_frontdoor_endpoint.docs.host_name
   description = "The Front Door endpoint hostname"
+}
+
+resource "azurerm_cdn_frontdoor_custom_domain" "docs" {
+  count = var.custom_domain != "" ? 1 : 0
+
+  name                     = "custom-domain-${var.project_name}"
+  cdn_frontdoor_profile_id = azurerm_cdn_frontdoor_profile.docs.id
+  host_name                = var.custom_domain
+
+  tls {
+    certificate_type    = "ManagedCertificate"   
+  }
 }
 ```
 
@@ -342,16 +364,6 @@ variable "project_name" {
   }
 }
 
-variable "environment" {
-  description = "Environment name"
-  type        = string
-  
-  validation {
-    condition     = contains(["dev", "test", "staging", "prod"], var.environment)
-    error_message = "Environment must be dev, test, staging, or prod."
-  }
-}
-
 variable "location" {
   description = "Azure region for resources"
   type        = string
@@ -364,55 +376,6 @@ variable "custom_domain" {
   default     = ""
 }
 ```
-
-### Deploying the Infrastructure
-
-Now that all the Terraform files are created in `documentation/infra/`, let's initialize and deploy:
-
-**First-time setup:**
-
-```bash
-# Navigate to the infrastructure folder
-cd documentation/infra
-
-# Login to Terraform Cloud
-terraform login
-
-# Initialize Terraform (downloads providers, configures backend)
-terraform init
-```
-
-The `terraform init` command will:
-- Download the AzureRM provider
-- Configure the Terraform Cloud backend
-- Link to the `documentation` workspace
-
-**Deploy the infrastructure:**
-
-```bash
-# Format the code
-terraform fmt
-
-# Validate the configuration
-terraform validate
-
-# Plan the infrastructure changes
-terraform plan
-
-# Apply the changes (deploys to Azure)
-terraform apply
-```
-
-Terraform Cloud will show you the resources being created:
-- Storage Account with static website hosting
-- Front Door profile and endpoint
-- Origin group and origin
-- Route configuration
-
-**Cost Estimate:**
-- Storage Account: ~$0.50/month (minimal traffic)
-- Front Door Standard: ~$35/month (base rate)
-- **Total: ~$36/month**
 
 ## Setting Up TechDocs
 
@@ -587,6 +550,87 @@ For CI/CD pipelines, you can use the `--no-docker` flag to avoid Docker dependen
   displayName: 'Generate Documentation'
 ```
 
+## Setting Up Azure DevOps
+
+Before we create the pipeline, we need to set up authentication and permissions in Azure DevOps.
+
+### Terraform Cloud Token
+
+To create a Terraform Cloud team token:
+
+1. Log into Terraform Cloud at https://app.terraform.io
+2. Go to your organization settings
+3. Click "Teams" → Select your team (or create one)
+4. Click "Team API token"
+5. Click "Create a team token"
+6. Copy the token and save it securely
+7. Use this token for the `TERRAFORM_CLOUD_TOKEN` variable in Azure DevOps
+
+In Azure DevOps, create a pipeline variable for the Terraform Cloud token:
+
+1. Go to Pipelines → Select your pipeline → Edit
+2. Click "Variables" in the top right
+3. Click "+ Add"
+4. **Name**: `TERRAFORM_CLOUD_TOKEN`
+5. **Value**: Your Terraform Cloud team token
+6. **Keep this value secret**: ✓ Check this box
+7. Click "OK"
+
+### Service Connection
+
+Create an Azure Resource Manager service connection in Azure DevOps:
+
+1. Go to Project Settings → Service connections
+2. Create new service connection → Azure Resource Manager
+3. **Authentication method**: Select "Workload Identity federation (automatic)"
+4. **Scope level**: Choose your subscription
+5. **Resource group**: Leave blank (do not select a specific resource group)
+6. **Service connection name**: `documentation`
+7. Click "Save"
+
+**Important:** Don't scope the service connection to a specific resource group. While this gives broader subscription-level access for control plane operations (creating/managing resources), we'll use Azure RBAC to grant specific data plane permissions in the next step.
+
+Azure DevOps will automatically create an App Registration in your Azure AD and configure the workload identity federation for secure, keyless authentication.
+
+### Grant Storage Permissions
+
+The service connection created in Azure DevOps has subscription-level permissions for control plane operations (managing Azure resources like creating storage accounts, Front Door, etc.), but it needs additional data plane permissions to upload and manage blobs within the storage account.
+
+**Control Plane vs Data Plane:**
+- **Control Plane**: Managing Azure resources themselves (create, update, delete resources). The service connection has this via its Contributor role at the subscription level.
+- **Data Plane**: Accessing and managing data within resources (uploading blobs, reading files, etc.). This requires separate RBAC assignments.
+
+The service principal needs the **Storage Blob Data Owner** role to upload documentation files to the storage account:
+
+```bash
+# Get the service principal Object ID from the service connection
+# (You can find this in Azure DevOps: Service Connection → Manage Service Principal → Object ID)
+
+# Assign Storage Blob Data Owner role (data plane access)
+az role assignment create \
+  --assignee <service-principal-object-id> \
+  --role "Storage Blob Data Owner" \
+  --scope /subscriptions/<subscription-id>/resourceGroups/rg-platformdocs-test/providers/Microsoft.Storage/storageAccounts/stplatformdocstest
+```
+
+Alternatively, assign the role through the Azure Portal:
+
+1. Navigate to your storage account in the Azure Portal
+2. Click "Access Control (IAM)" in the left menu
+3. Click "+ Add" → "Add role assignment"
+4. Select "Storage Blob Data Owner" role
+5. Click "Next"
+6. Select "User, group, or service principal"
+7. Click "+ Select members"
+8. Search for your service connection name (`documentation`)
+9. Select it and click "Select"
+10. Click "Review + assign"
+
+**Why Storage Blob Data Owner?**
+- This role provides full access to blob data (read, write, delete)
+- Required for the `az storage blob upload-batch` and `az storage blob delete-batch` commands in the pipeline
+- Scoped to just the storage account, following least-privilege principles
+
 ## Azure DevOps Pipeline
 
 Now let's automate the deployment with Azure DevOps.
@@ -604,20 +648,24 @@ trigger:
     include:
       - documentation/docs/**
       - documentation/mkdocs.yml
-      - azure-pipelines.yml
+      - documentation/infra/**
+      - .azdo/documentation.yml
 
 pool:
   vmImage: 'ubuntu-latest'
 
 variables:
   - name: storageAccount
-    value: 'stplatformdocsprod'
+    value: 'stplatformdocstest'
   - name: containerName
-    value: '$web'
+    value: '\$web'
+  - name: TF_CLOUD_TOKEN
+    value: '$(TERRAFORM_CLOUD_TOKEN)'
 
 stages:
   - stage: Build
     displayName: 'Build Documentation'
+    dependsOn: []
     jobs:
       - job: BuildDocs
         displayName: 'Build TechDocs'
@@ -643,9 +691,43 @@ stages:
               publishLocation: 'Container'
             displayName: 'Publish Documentation Artifact'
 
+  - stage: DeployInfrastructure
+    displayName: 'Deploy Infrastructure'
+    dependsOn: []
+    jobs:
+      - job: TerraformApply
+        displayName: 'Apply Terraform'
+        steps:
+          - task: ms-devlabs.custom-terraform-tasks.custom-terraform-installer-task.TerraformInstaller@0
+            inputs:
+              terraformVersion: 'latest'
+            displayName: 'Install Terraform'
+
+          - script: |
+              cat > ~/.terraformrc << EOF
+              credentials "app.terraform.io" {
+                token = "$TERRAFORM_CLOUD_TOKEN"
+              }
+              EOF
+            displayName: 'Configure Terraform Cloud Credentials'
+            env:
+              TERRAFORM_CLOUD_TOKEN: $(TERRAFORM_CLOUD_TOKEN)
+
+          - script: |
+              cd documentation/infra
+              terraform init
+            displayName: 'Terraform Init'
+
+          - script: |
+              cd documentation/infra
+              terraform apply -auto-approve
+            displayName: 'Terraform Apply'
+
   - stage: Deploy
     displayName: 'Deploy to Azure'
-    dependsOn: Build
+    dependsOn: 
+      - Build
+      - DeployInfrastructure
     condition: succeeded()
     jobs:
       - deployment: DeployDocs
@@ -683,91 +765,99 @@ stages:
                     scriptLocation: 'inlineScript'
                     inlineScript: |
                       # Purge Front Door cache
-                      az afd endpoint purge --resource-group rg-platformdocs-prod --profile-name fd-platformdocs-prod --endpoint-name ep-platformdocs-prod --content-paths "/*"
+                      az afd endpoint purge --resource-group rg-platformdocs-test --profile-name fd-platformdocs-test --endpoint-name ep-platformdocs-test --content-paths "/*"
                   displayName: 'Purge Front Door Cache'
 ```
 
-### Service Connection
+**Key Pipeline Features:**
 
-Create an Azure Resource Manager service connection in Azure DevOps:
+1. **Trigger Paths**: Pipeline runs when documentation files or the pipeline itself changes
+2. **Storage Account Variable**: Set to `stplatformdocstest` - matches the storage account name created by Terraform
+3. **Container Name**: Escaped as `\$web` to prevent variable expansion
+4. **Terraform Cloud Token**: Uses environment variable in the script for proper credential handling
+5. **Parallel Stages**: Build and DeployInfrastructure run in parallel for faster execution
+6. **TerraformInstaller Task**: Uses the full task ID `ms-devlabs.custom-terraform-tasks.custom-terraform-installer-task.TerraformInstaller@0`
 
-1. Go to Project Settings → Service connections
-2. Create new service connection → Azure Resource Manager
-3. **Authentication method**: Select "Workload Identity federation (automatic)"
-4. **Scope level**: Choose your subscription
-5. **Resource group**: Select the resource group containing your storage account
-6. **Service connection name**: `documentation`
-7. Click "Save"
+## Deployment Workflow
 
-Azure DevOps will automatically create an App Registration in your Azure AD and configure the workload identity federation for secure, keyless authentication.
+Here's the complete workflow for deploying documentation to the test environment:
 
-### Grant Storage Permissions
+### 1. Configure Azure DevOps Pipeline Variables
 
-The service principal needs permission to manage blobs in the storage account:
+The pipeline variables are already set correctly:
+
+1. `storageAccount`: `stplatformdocstest` (matches Terraform output)
+2. `containerName`: `$web`
+3. `TERRAFORM_CLOUD_TOKEN`: Added as a secret variable
+
+### 2. Grant Permissions to Service Principal
 
 ```bash
-# Get the service principal ID from the service connection
-# (You can find this in Azure DevOps: Service Connection → Manage Service Principal)
+# Get your service principal object ID from Azure DevOps service connection
+# Then assign the role using the actual storage account name
 
-# Assign Storage Blob Data Owner role
 az role assignment create \
   --assignee <service-principal-object-id> \
   --role "Storage Blob Data Owner" \
-  --scope /subscriptions/<subscription-id>/resourceGroups/rg-platformdocs-prod/providers/Microsoft.Storage/storageAccounts/stplatformdocsprod
+  --scope /subscriptions/<subscription-id>/resourceGroups/rg-platformdocs-test/providers/Microsoft.Storage/storageAccounts/stplatformdocstest
 ```
 
-Alternatively, assign the role through the Azure Portal:
+### 3. Run the Pipeline
 
-1. Navigate to your storage account in the Azure Portal
-2. Click "Access Control (IAM)" in the left menu
-3. Click "+ Add" → "Add role assignment"
-4. Select "Storage Blob Data Owner" role
-5. Click "Next"
-6. Select "User, group, or service principal"
-7. Click "+ Select members"
-8. Search for your service connection name (`documentation`)
-9. Select it and click "Select"
-10. Click "Review + assign"
+Once configured, the pipeline will:
+1. Build documentation from Markdown
+2. Deploy/update infrastructure via Terraform Cloud (automatically creates resources on first run)
+3. Upload to storage account
+4. Purge Front Door cache
 
-## Custom Domain Configuration (Optional)
+The infrastructure stage is idempotent - it won't recreate resources if they already exist. On the first pipeline run, Terraform will create all the Azure resources. On subsequent runs, it will only update resources if changes are detected.
+
+**Note:** You don't need to run Terraform locally for deployment. The pipeline handles all infrastructure provisioning and updates through Terraform Cloud. The only time you'd run Terraform locally is to destroy resources when cleaning up (see the "Cleaning Up Resources" section below).
+
+### Custom Domain Configuration (Optional)
 
 To use a custom domain like `docs.yourdomain.com`:
 
-### Add Custom Domain to Front Door
+#### Set the Custom Domain Variable
 
-```hcl
-# Add to frontdoor.tf
+The custom domain support is already built into the `frontdoor.tf` configuration. To enable it, simply set the `custom_domain` Terraform variable in your Terraform Cloud workspace:
 
-resource "azurerm_cdn_frontdoor_custom_domain" "docs" {
-  count = var.custom_domain != "" ? 1 : 0
+1. Go to your Terraform Cloud workspace → Variables
+2. Add or update the `custom_domain` variable with your domain (e.g., `docs.yourdomain.com`)
+3. Run the pipeline - Terraform will automatically create the custom domain resource and configure Front Door
 
-  name                     = "custom-domain-${var.project_name}"
-  cdn_frontdoor_profile_id = azurerm_cdn_frontdoor_profile.docs.id
-  host_name                = var.custom_domain
+#### DNS Configuration
 
-  tls {
-    certificate_type    = "ManagedCertificate"
-    minimum_tls_version = "TLS12"
-  }
-}
+After setting the custom domain variable and applying it, you need to validate domain ownership:
 
-resource "azurerm_cdn_frontdoor_custom_domain_association" "docs" {
-  count = var.custom_domain != "" ? 1 : 0
+**Step 1: Add the custom domain CNAME**
 
-  cdn_frontdoor_custom_domain_id = azurerm_cdn_frontdoor_custom_domain.docs[0].id
-  cdn_frontdoor_route_ids        = [azurerm_cdn_frontdoor_route.docs.id]
-}
-```
-
-### DNS Configuration
-
-Add a CNAME record to your DNS:
+Add a CNAME record pointing to your Front Door endpoint:
 
 ```
-docs.yourdomain.com  CNAME  ep-platformdocs-prod-xxxxx.azurefd.net
+docs.yourdomain.com  CNAME  ep-{your-project-name}-{random-hash}.azurefd.net
 ```
 
-Front Door will automatically provision a managed SSL certificate.
+**Step 2: Validate domain ownership**
+
+1. Go to the Azure Portal
+2. Navigate to your Front Door resource
+3. Click "Domains" in the left menu
+4. Find your custom domain and click on it
+5. Look at the "Validation state" section
+6. You'll see a TXT record that needs to be added to your DNS:
+   - **Record type**: TXT
+   - **Record name**: `_dnsauth.docs.yourdomain.com`
+   - **Record value**: A unique validation token (e.g., `_jm6ytg2a7tnl53777awtblog2f8tylh`)
+
+7. Add this TXT record to your DNS provider
+8. Wait for DNS propagation (can take up to 15-30 minutes)
+9. Azure will automatically validate the domain once the TXT record is detected
+10. Once validated, Front Door will provision a managed SSL certificate
+
+**Note:** The TXT record is only needed for validation. You can remove it after the domain is validated, but keeping it doesn't cause any issues.
+
+Front Door will automatically provision and manage the SSL certificate for your custom domain once validation is complete.
 
 ## Monitoring and Analytics
 
@@ -780,13 +870,14 @@ Create `documentation/infra/monitoring.tf` for Application Insights:
 ```hcl
 
 resource "azurerm_application_insights" "docs" {
-  name                = "ai-${var.project_name}-${var.environment}"
+  name                = "ai-${var.project_name}-${local.environment}"
   resource_group_name = azurerm_resource_group.docs.name
   location            = azurerm_resource_group.docs.location
   application_type    = "web"
 
   tags = local.common_tags
 }
+```
 
 output "instrumentation_key" {
   value       = azurerm_application_insights.docs.instrumentation_key
@@ -809,10 +900,22 @@ After your pipeline runs, test the deployment:
 
 ```bash
 # Test the storage endpoint directly
-curl https://stplatformdocsprod.z5.web.core.windows.net/
+# Replace with your actual storage account name from your project_name variable
+curl https://st{your-project-name}.z5.web.core.windows.net/
 
 # Test through Front Door
-curl https://ep-platformdocs-prod-xxxxx.azurefd.net/
+# Replace with your actual Front Door endpoint from Azure Portal or Terraform Cloud outputs
+curl https://ep-{your-project-name}-{random-hash}.azurefd.net/
+
+# Get the exact URLs from Terraform Cloud:
+# 1. Log into https://app.terraform.io
+# 2. Navigate to your organization → documentation workspace
+# 3. Go to "States" → View latest state
+# 4. Look for outputs: static_website_url and frontdoor_endpoint
+# 
+# Or view outputs in Azure Portal:
+# - Storage endpoint: Storage Account → Static website → Primary endpoint
+# - Front Door endpoint: Front Door → Endpoint hostname
 
 # Test custom domain (if configured)
 curl https://docs.yourdomain.com/
@@ -820,20 +923,7 @@ curl https://docs.yourdomain.com/
 
 ## Best Practices
 
-### 1. Cache Control Headers
-
-Configure cache headers for better performance:
-
-```bash
-# Set cache headers on upload
-az storage blob upload-batch \
-  --account-name $STORAGE_ACCOUNT \
-  --destination '$web' \
-  --source ./site \
-  --content-cache-control "public, max-age=3600"
-```
-
-### 2. Compression
+### 1. Compression
 
 Enable compression in Front Door for better performance:
 
@@ -862,7 +952,7 @@ resource "azurerm_cdn_frontdoor_rule" "compression" {
 }
 ```
 
-### 3. Security Headers
+### 2. Security Headers
 
 Add security headers to your documentation:
 
@@ -905,15 +995,15 @@ If your documentation doesn't update after deployment:
 2. **Purge the cache**: Front Door caches content aggressively
    ```bash
    az afd endpoint purge \
-     --resource-group rg-platformdocs-prod \
-     --profile-name fd-platformdocs-prod \
-     --endpoint-name ep-platformdocs-prod \
+     --resource-group rg-platformdocs-test \
+     --profile-name fd-platformdocs-test \
+     --endpoint-name ep-platformdocs-test \
      --content-paths "/*"
    ```
 3. **Verify upload**: Check the storage account to ensure files were uploaded
    ```bash
    az storage blob list \
-     --account-name stplatformdocsprod \
+     --account-name stplatformdocstest \
      --container-name '$web' \
      --output table
    ```
@@ -964,23 +1054,40 @@ For very low traffic sites, Front Door Classic might be cheaper:
 
 ### Monthly Cost Breakdown
 
-**Production Setup:**
+**Test/Development Setup:**
 - Storage Account: $0.50
+- Front Door Standard: $35.00
+- Data transfer (minimal): $0.01
+- **Total: ~$36/month**
+
+**Production Setup:**
+- Storage Account: $1.00 (more traffic)
 - Front Door Standard: $35.00
 - Data transfer (10 GB): $0.10
 - **Total: ~$36/month**
 
-**Development Setup:**
+**Development-Only Setup (no Front Door):**
 - Storage Account only: $0.50
 - Use direct storage endpoint
 - **Total: ~$0.50/month**
 
+**Note:** For this tutorial, we're deploying to a test environment with the full Front Door setup to demonstrate the complete solution. In practice, you might skip Front Door for development environments and use only the storage account endpoint to save costs.
+
 ## Cleaning Up Resources
 
-To delete all resources and avoid charges:
+To delete all resources and avoid charges, you'll need to run Terraform locally. This is the only time you need to run Terraform outside of the pipeline:
 
 ```bash
-# Through Terraform Cloud
+# Navigate to infrastructure folder
+cd documentation/infra
+
+# Login to Terraform Cloud
+terraform login
+
+# Initialize Terraform (connects to Terraform Cloud workspace)
+terraform init
+
+# Destroy all resources
 terraform destroy
 
 # Confirm the destruction
@@ -989,6 +1096,8 @@ terraform destroy
 # - Storage account and all content
 # - Resource group
 ```
+
+All infrastructure deployment is handled by the Azure DevOps pipeline, but cleanup requires manual intervention to prevent accidental deletion.
 
 ## Coming up in the Series
 
@@ -1014,7 +1123,14 @@ We've built a complete documentation deployment pipeline that:
 ✅ Automates deployment with Azure DevOps pipelines
 ✅ Manages infrastructure with Terraform Cloud
 ✅ Supports custom domains with managed SSL certificates
-✅ Costs only ~$36/month for production (or $0.50 for dev)
+✅ Deploys to test environment (~$36/month) with same infrastructure as production
+
+**Key Takeaways:**
+- Azure Storage account names must be globally unique - choose a unique project name
+- The storage account name is created from `st${var.project_name}` - in this example `stplatformdocs` from project_name "platformdocs"
+- Infrastructure and deployment are fully automated through Terraform Cloud and Azure DevOps
+- Same pattern works for dev, test, and production - just change the environment in main.tf
+- Front Door adds $35/month but provides global CDN, SSL, and custom domains
 
 This infrastructure gives us enterprise-grade documentation hosting at a fraction of the cost of traditional web hosting, with the reliability and performance of Azure's global infrastructure.
 

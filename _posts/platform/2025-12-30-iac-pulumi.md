@@ -1,6 +1,6 @@
 ---
 title: "Building a Modern Development Platform: Pulumi as an Alternative to Terraform for Azure IaC 🔄"
-date: 2025-12-23T06:00:00-07:00
+date: 2025-12-30T06:00:00-07:00
 draft: false
 categories: ["platform","pulumi","iac","azure","infrastructure","terraform"]
 description: "Exploring Pulumi as an alternative to Terraform for Azure infrastructure as code - leveraging familiar programming languages for type safety and better developer experience"

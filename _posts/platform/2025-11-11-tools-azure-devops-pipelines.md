@@ -1,6 +1,6 @@
 ---
 title: "Building a Modern Development Platform: Azure DevOps Pipeline Templates ♻️"
-date: 2025-11-04T06:00:00-07:00
+date: 2025-11-11T06:00:00-07:00
 draft: false
 categories: ["platform","azure-devops","cicd","pipelines","automation"]
 description: "Creating reusable Azure DevOps pipeline templates for standardized build, test, and deployment workflows across all platform applications"

@@ -8,6 +8,8 @@ description: "Exploring Kiota for generating type-safe API clients in multiple l
 
 [Series Posts](https://brianpsheridan.com/categories.html#platform)
 
+> 💻 **Source Code:** The complete code for this post is available in the [`aspire-tools-kiota`](https://github.com/two4suited/blog-platform-aspire/tree/aspire-tools-kiota) branch of our GitHub repository.
+
 ## Introduction 🚀
 
 In our [TypeSpec post](https://brianpsheridan.com/platform/typespec/api/contract-first/openapi/2025/10/14/tools-typespec.html), we defined our Weather API contract and generated an OpenAPI specification. Now we have a machine-readable API description, but how do frontend and backend teams consume it? Should they manually write HTTP client code? Parse JSON responses into TypeScript interfaces by hand? Hope the API contract doesn't change?

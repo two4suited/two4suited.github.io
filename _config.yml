@@ -54,6 +54,8 @@ baseurl: "" # the subpath of your site, e.g. /blog
 url: "" # the base hostname & protocol for your site, e.g. http://example.com
 exclude_powered_by: false
 markdown: kramdown
+kramdown:
+  toc_levels: 2..2  # Only include H2 (##) headings, exclude H3 (###) and H4 (####)
 paginate: 5
 
 

@@ -32,6 +32,35 @@ This works great until you make a breaking change to your templates:
 - ❌ You change variable names: `appName` → `projectName`
 - ❌ **Everyone's pipelines break immediately**
 
+### The Breaking Change Scenario ❌
+
+Imagine you share pipeline templates across 50 teams in your organization:
+
+```yaml
+# Current template: stages/build.yml
+parameters:
+  - name: buildConfiguration
+    type: string
+    default: 'Release'
+```
+
+You want to improve naming, so you rename the parameter:
+
+```yaml
+# Updated template: stages/build.yml
+parameters:
+  - name: configuration      # ← Changed from buildConfiguration
+    type: string
+    default: 'Release'
+```
+
+**What happens at 3 AM:**
+- 🚨 All 50 teams' pipelines start failing
+- 😱 Teams can't deploy because their pipelines reference `buildConfiguration`
+- 📞 Your team gets paged frantically
+- ⏹️ Production deployments are blocked
+- 😤 Teams lose trust in shared templates
+
 Suddenly your entire organization is blocked, unable to deploy. Teams are scrambling to fix their pipelines. Production deployments are halted. All because you tried to improve your templates.
 
 ## The Solution: Versioned Templates 🎯
@@ -75,35 +104,6 @@ An **automated versioning pipeline** creates a disciplined release process for y
 - 🔐 Enables safe, controlled template changes
 
 ## Why Automated Versioning? 🤔
-
-### The Breaking Change Scenario ❌
-
-Imagine you share pipeline templates across 50 teams in your organization:
-
-```yaml
-# Current template: stages/build.yml
-parameters:
-  - name: buildConfiguration
-    type: string
-    default: 'Release'
-```
-
-You want to improve naming, so you rename the parameter:
-
-```yaml
-# Updated template: stages/build.yml
-parameters:
-  - name: configuration      # ← Changed from buildConfiguration
-    type: string
-    default: 'Release'
-```
-
-**What happens at 3 AM:**
-- 🚨 All 50 teams' pipelines start failing
-- 😱 Teams can't deploy because their pipelines reference `buildConfiguration`
-- 📞 Your team gets paged frantically
-- ⏹️ Production deployments are blocked
-- 😤 Teams lose trust in shared templates
 
 ### The Versioning Advantage ✅
 

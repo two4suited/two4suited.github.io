@@ -1,5 +1,5 @@
 ---
-title: "Building a Modern Development Platform: Versioning Your Azure DevOps Pipeline 🏷️"
+title: "Building a Modern Development Platform: Versioning Your Azure DevOps Pipelines 🏷️"
 date: 2025-11-11T12:00:00-07:00
 draft: false
 categories: ["platform","azure-devops","versioning","cicd","automation"]

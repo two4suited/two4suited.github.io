@@ -787,9 +787,9 @@ This creates version `1.0.0-alpha`:
 
 ## Best Practices 🎯
 
-### 1. **Communicate Breaking Changes** 📢
+### 1. **Communicate Breaking Changes with Release Notes** 📢
 
-When releasing a major version, document exactly what changed:
+When releasing a major version, always create release notes documenting what changed:
 
 ```markdown
 ## v2.0.0 - Breaking Changes ⚠️
@@ -826,6 +826,11 @@ buildConfiguration: Release
 configuration: Release
 ```
 
+### Notify Teams
+- 📧 Send email with migration guide for breaking changes
+- 💬 Post in team Slack channels
+- 📊 Create metrics dashboard showing which teams use which versions
+- 🎯 Set upgrade deadlines for unsupported versions
 
 ### 2. **Provide Migration Path** 🛤️
 
@@ -868,36 +873,7 @@ parameters:
 
 This gives teams time to migrate without immediate breakage.
 
-### 4. **Publish Release Notes** 📰
-
-Always publish release notes with each version:
-
-```
-📌 Pipeline Templates v2.0.0 Released
-
-🎉 New Features:
-- Multi-configuration build support
-- Native TypeScript compilation
-
-⚠️ Breaking Changes:
-- Parameter names changed (see migration guide)
-- Removed legacy script support
-
-📖 Migration Guide: [docs/upgrade-v1-to-v2.md](docs/upgrade-v1-to-v2.md)
-
-💬 Questions? Post in #devops-templates Slack channel
-```
-
-### 5. **Notify Teams of Updates** 🔔
-
-Proactively communicate version releases to teams:
-
-- 📧 Send email with migration guide for breaking changes
-- 💬 Post in team Slack channels
-- 📊 Create metrics dashboard showing which teams use which versions
-- 🎯 Set upgrade deadlines for unsupported versions
-
-### 6. **Commit Messages Should Reference Versions** 📝
+### 4. **Commit Messages Should Reference Versions** 📝
 
 ```bash
 git commit -m "chore: bump version to 2.1.0 - new feature: X, bugfix: Y"
@@ -905,36 +881,14 @@ git commit -m "chore: bump version to 2.1.0 - new feature: X, bugfix: Y"
 
 Makes it easy to understand what changed in each version.
 
-### 7. **Create Release Notes** 📄
-
-When creating a version, document what changed:
-
-```markdown
-## v2.1.0
-
-### Features ✨
-- New dashboard visualizations
-- Export to CSV functionality
-
-### Bug Fixes 🐛
-- Fixed timeout in background jobs
-- Corrected calculation in reporting module
-
-### Breaking Changes ⚠️
-None - all changes are backward compatible
-
-### Upgrade Path
-No action needed. Existing projects can upgrade whenever convenient.
-```
-
-### 8. **Use Protected Branches** 🔒
+### 5. **Use Protected Branches** 🔒
 
 Protect the `main` branch to prevent accidental version bumps:
 - Require pull requests
 - Require approvals
 - Run all tests before merging
 
-### 9. **Tag After Testing** ✅
+### 6. **Tag After Testing** ✅
 
 Consider this workflow:
 1. Develop features on feature branches
@@ -944,7 +898,7 @@ Consider this workflow:
 5. Pipeline creates the official tag
 6. Notify teams of new version availability
 
-### 10. **Automate Version Bumping** 🔄
+### 7. **Automate Version Bumping** 🔄
 
 For advanced scenarios, consider automating version bumping based on commit messages:
 - Commit with `[major]` tag → bumps MAJOR version

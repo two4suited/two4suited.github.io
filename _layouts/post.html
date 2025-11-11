@@ -18,10 +18,10 @@ layout: default
   .post-toc {
     width: 250px;
     position: sticky;
-    top: 20px;
+    top: 100px;
     height: fit-content;
     overflow-y: auto;
-    max-height: calc(100vh - 40px);
+    max-height: calc(100vh - 120px);
   }
 
   .post-toc ul {
@@ -87,7 +87,7 @@ layout: default
 
     {%- if page.toc != false -%}
       <nav class="post-toc">
-        <h4>Contents</h4>
+        <h4>Table of Contents</h4>
         {% include toc.html html=content h_min=2 h_max=2 %}
       </nav>
     {%- endif -%}

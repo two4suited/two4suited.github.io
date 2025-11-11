@@ -9,7 +9,6 @@ toc: true
 
 [Series Posts](https://brianpsheridan.com/categories.html#platform)
 
-> 💻 **Source Code:** The complete versioning pipeline and configuration files are available in the [`aspire-tools-azure-devops`](https://github.com/two4suited/blog-platform-aspire/tree/aspire-tools-azure-devops) branch of our GitHub repository.
 
 ## The Problem: Breaking Changes in Shared Templates 💥
 
@@ -65,9 +64,9 @@ Now you can safely make breaking changes in a new major version:
 - ✅ Teams upgrade on their schedule, at their pace
 - ✅ Your pipelines remain stable and predictable
 
-## Introduction 🚀
+## How Automated Versioning Solves This ⚙️
 
-An **automated versioning pipeline** solves this by creating a disciplined release process for your templates:
+An **automated versioning pipeline** creates a disciplined release process for your templates:
 - ✅ Generates semantic version numbers (MAJOR.MINOR.PATCH)
 - 🏷️ Creates Git tags automatically
 - 🌿 Maintains release version branches
@@ -761,8 +760,6 @@ extends:
 | `refs/heads/main` | Always latest features | ❌ Breaking changes could break you overnight |
 
 **Recommendation:** Use `releases/vX.latest` for your major version. You get stability (no breaking changes) plus automatic bug fixes. Only use specific tags if you need complete control for compliance reasons.
-
-## Pre-Release Versions 🧪
 
 ## Pre-Release Versions 🧪
 

@@ -93,7 +93,7 @@ Now you can safely make breaking changes in a new major version:
 - ✅ Teams upgrade on their schedule, at their pace
 - ✅ Your pipelines remain stable and predictable
 
-## How Automated Versioning Solves This ⚙️
+### How Automated Versioning Solves This ⚙️
 
 An **automated versioning pipeline** creates a disciplined release process for your templates:
 - ✅ Generates semantic version numbers (MAJOR.MINOR.PATCH)
@@ -102,8 +102,6 @@ An **automated versioning pipeline** creates a disciplined release process for y
 - 📊 Provides version information to downstream pipelines
 - 🔄 Prevents duplicate versions
 - 🔐 Enables safe, controlled template changes
-
-## Why Automated Versioning? 🤔
 
 ### The Versioning Advantage ✅
 

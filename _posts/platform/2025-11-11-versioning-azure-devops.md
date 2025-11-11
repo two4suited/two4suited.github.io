@@ -167,6 +167,78 @@ Our versioning system consists of:
 - **Patch version**: Bug fix releases
 - **Pre-release identifiers**: `-alpha`, `-beta`, `-rc1` for testing releases
 
+## Using Version Numbers in Other Pipelines 🔗
+
+### Reference Pipeline Templates with Version Branch or Tag
+
+When teams reference your shared pipeline templates, they have two safe options:
+
+#### Option 1: Reference the Release Branch (Recommended)
+
+Use the `releases/vX.latest` branch to get bug fixes automatically:
+
+```yaml
+resources:
+  repositories:
+    - repository: templates
+      type: git
+      name: YourProject/pipeline-templates
+      ref: refs/heads/releases/v1.latest  # ✅ Always v1.x.x with latest patches
+
+trigger:
+  - main
+
+extends:
+  template: stages/build.yml@templates
+  parameters:
+    appName: 'WeatherApp.Api'
+    buildConfiguration: 'Release'
+    projectPath: 'src/WeatherApp.Api'
+```
+
+**Benefits:**
+- 🔄 Automatically gets bug fixes (v1.0.1, v1.0.2, v1.1.0)
+- 🛡️ Protected from breaking changes (v2.0.0 won't affect you)
+- ⚡ No manual version updates needed
+
+#### Option 2: Reference a Specific Tag
+
+Pin to an exact version for complete control:
+
+```yaml
+resources:
+  repositories:
+    - repository: templates
+      type: git
+      name: YourProject/pipeline-templates
+      ref: refs/tags/v1.0.0  # ✅ Frozen at exactly v1.0.0
+
+trigger:
+  - main
+
+extends:
+  template: stages/build.yml@templates
+  parameters:
+    appName: 'WeatherApp.Api'
+    buildConfiguration: 'Release'
+    projectPath: 'src/WeatherApp.Api'
+```
+
+**Benefits:**
+- 🔒 Completely frozen behavior - templates never change
+- 📋 Predictable for compliance/audit scenarios
+- ⚠️ Must manually update tags to get bug fixes
+
+**Comparison:**
+
+| Approach | Benefit | Trade-off |
+|----------|---------|-----------|
+| `refs/heads/releases/v1.latest` | Get bug fixes (v1.0.1, v1.1.0) automatically | Must trust template maintainers for PATCH/MINOR updates |
+| `refs/tags/v1.0.0` | Complete control, frozen behavior | Must manually update to get bug fixes |
+| `refs/heads/main` | Always latest features | ❌ Breaking changes could break you overnight |
+
+**Recommendation:** Use `releases/vX.latest` for your major version. You get stability (no breaking changes) plus automatic bug fixes. Only use specific tags if you need complete control for compliance reasons.
+
 ## Pipeline Architecture 🏗️
 
 The versioning pipeline has two core files:
@@ -677,6 +749,8 @@ extends:
 | `refs/heads/main` | Always latest features | ❌ Breaking changes could break you overnight |
 
 **Recommendation:** Use `releases/vX.latest` for your major version. You get stability (no breaking changes) plus automatic bug fixes. Only use specific tags if you need complete control for compliance reasons.
+
+## Pre-Release Versions 🧪
 
 ## Pre-Release Versions 🧪
 

@@ -4,6 +4,7 @@ date: 2025-11-11T12:00:00-07:00
 draft: false
 categories: ["platform","azure-devops","versioning","cicd","automation"]
 description: "Automating semantic versioning in Azure DevOps with automated tagging and branch management"
+toc: true
 ---
 
 [Series Posts](https://brianpsheridan.com/categories.html#platform)

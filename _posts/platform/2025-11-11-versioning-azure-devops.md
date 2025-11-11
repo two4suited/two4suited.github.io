@@ -36,15 +36,26 @@ Suddenly your entire organization is blocked, unable to deploy. Teams are scramb
 
 ## The Solution: Versioned Templates 🎯
 
-With versioning, teams pin to specific versions:
+With versioning, teams pin to specific versions using either **release branches** or **specific tags**:
 
+**Option 1: Release Branch (Recommended for automatic bug fixes)**
 ```yaml
 resources:
   repositories:
     - repository: templates
       type: git
       name: YourProject/pipeline-templates
-      ref: refs/tags/v1.2.0  # ✅ Pinned to specific version
+      ref: refs/heads/releases/v1.latest  # ✅ Branch: Always gets v1.x patches
+```
+
+**Option 2: Specific Tag (For complete control)**
+```yaml
+resources:
+  repositories:
+    - repository: templates
+      type: git
+      name: YourProject/pipeline-templates
+      ref: refs/tags/v1.2.0  # ✅ Tag: Pinned to exact version
 ```
 
 Now you can safely make breaking changes in a new major version:

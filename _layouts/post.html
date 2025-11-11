@@ -1,0 +1,95 @@
+---
+layout: default
+---
+
+<style>
+  .post-container {
+    display: flex;
+    gap: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .post-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .post-toc {
+    width: 250px;
+    position: sticky;
+    top: 20px;
+    height: fit-content;
+    overflow-y: auto;
+    max-height: calc(100vh - 40px);
+  }
+
+  .post-toc ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .post-toc ul ul {
+    margin-left: 1rem;
+  }
+
+  .post-toc a {
+    display: block;
+    padding: 0.25rem 0;
+    text-decoration: none;
+    color: #666;
+    font-size: 0.9rem;
+  }
+
+  .post-toc a:hover {
+    color: #333;
+    text-decoration: underline;
+  }
+
+  @media (max-width: 768px) {
+    .post-container {
+      flex-direction: column;
+    }
+
+    .post-toc {
+      width: 100%;
+      position: static;
+      max-height: none;
+    }
+  }
+</style>
+
+<article class="post">
+  <div class="post-container">
+    <div class="post-content">
+      <header class="post-header">
+        <h1 class="post-title">{{ page.title | escape }}</h1>
+        <p class="post-meta">
+          <time class="dt-published" datetime="{{ page.date | date_to_xmlschema }}" itemprop="datePublished">
+            {%- assign date_format = site.minima.date_format | default: "%b %-d, %Y" -%}
+            {{ page.date | date: date_format }}
+          </time>
+          {%- if page.author -%}
+            • <span itemprop="author" itemscope itemtype="http://schema.org/Person"><span class="p-author h-card" itemprop="name">{{ page.author | escape }}</span></span>
+          {%- endif -%}
+        </p>
+      </header>
+
+      <div class="post-body" itemprop="articleBody">
+        {{ content }}
+      </div>
+
+      {%- if site.disqus.shortname -%}
+        {%- include disqus_comments.html -%}
+      {%- endif -%}
+    </div>
+
+    {%- if page.toc != false -%}
+      <nav class="post-toc">
+        <h4>Contents</h4>
+        {% include toc.html html=content %}
+      </nav>
+    {%- endif -%}
+  </div>
+</article>

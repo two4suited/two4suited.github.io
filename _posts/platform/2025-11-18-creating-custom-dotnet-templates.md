@@ -1,6 +1,6 @@
 ---
 title: "Building a Modern Development Platform: Creating Custom dotnet new Templates 🏗️"
-date: 2025-11-15T12:00:00-07:00
+date: 2025-11-15T06:00:00-07:00
 draft: false
 categories: ["platform","dotnet","templates","automation","tooling"]
 description: "Build reusable .NET templates with dotnet new to standardize project structure and accelerate development across your organization"
